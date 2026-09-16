@@ -1,0 +1,253 @@
+<!--
+  Tikkies Tools — Pad State Widget (ป้ายบอกว่า "ระบบ Soundpad เปิดอยู่" สำหรับ แหล่งภาพชนิดเว็บของโปรแกรมไลฟ์)
+
+  วิธีใช้:
+    เพิ่ม http://localhost:21213/widgets/padstate.html เป็น แหล่งภาพชนิดเว็บในโปรแกรมไลฟ์
+    (พื้นหลังโปร่งใส แนะนำขนาดกว้าง 260 สูง 90)
+
+  มีไว้ทำไม: ตั้งแต่รอบสอง ระบบไม่ได้ "กินปุ่ม" เป็นค่าเริ่มต้นอีกแล้ว ป้ายนี้จึงไม่ได้เตือนเรื่อง
+  พิมพ์ไม่ออก แต่บอกว่า "ระบบ Soundpad เปิดอยู่หรือเปล่า" ซึ่งยังจำเป็นอยู่ดี — ปุ่มลัดสลับระบบ
+  (toggleKey) เผลอกดโดนตอนเล่นเกมได้ และคนเล่นเกมเต็มจอไม่เห็นหน้าต่างโปรแกรม พอกดปุ่มเสียงแล้ว
+  เงียบก็ไม่รู้ว่าเพราะระบบถูกปิดไว้ ป้ายบนภาพสตรีมตอบให้ได้ทันทีโดยไม่ต้องสลับหน้าจอ
+  (ใครเปิดตัวเลือก "กินปุ่ม" เองไว้ ป้ายนี้ก็ยังเป็นตัวเตือนว่าทำไมพิมพ์แล้วตัวอักษรหายเหมือนเดิม)
+
+  พารามิเตอร์ (ต่อท้าย URL):
+    ?label=ข้อความ    ข้อความตอนระบบเปิด (ค่าเริ่มต้น SOUNDPAD ON)
+    ?offlabel=ข้อความ ข้อความตอนระบบปิด (ค่าเริ่มต้น SOUNDPAD OFF — เห็นเฉพาะเมื่อ ?hideoff=0)
+    ?hideoff=1        ซ่อนป้ายตอนระบบปิด (ค่าเริ่มต้นอยู่แล้ว); ?hideoff=0 = โชว์ป้ายจางๆ ค้างไว้
+    ?dot=0            ไม่ต้องมีจุดกระพริบ เหลือแต่ข้อความ
+    ?bank=1           ต่อท้ายด้วยชื่อชุดเสียงที่ใช้อยู่
+    ?count=1          ต่อท้ายด้วยจำนวนปุ่มที่ใส่เสียงไว้ในชุดนั้น
+                      (สองตัวนี้เพิ่มบรรทัดที่สอง ป้ายจะสูงขึ้นอีก ~15px — ตั้งสูง 90 แทน)
+    ?align=left|center|right  ตำแหน่งป้ายในกรอบ (ค่าเริ่มต้น left)
+    ?template=default|neon|glass|arcade|plain  หน้าตาของ widget (ดู src/widgets/common/templates.css)
+    ?host= / ?port=   กรณีเปิดจากเครื่อง/พอร์ตอื่น (ค่าเริ่มต้น localhost:21213)
+
+  ข้อมูล: อ่านสถานะตั้งต้นจาก snapshot.soundpad ตอนต่อ WebSocket ติด (event 'soundpadState'
+          ยิงเฉพาะตอนมีการเปลี่ยน — ถ้ารอแต่ event ป้ายจะว่างตั้งแต่เปิดโปรแกรมไลฟ์ จนกว่าจะมีคนสลับสถานะ)
+          รูปแบบข้อมูลเหมือนกันทั้งสองทาง: { on, bank: {id,name}, keys, reason }
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Pad State</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<link rel="stylesheet" href="common/templates.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; /* สำหรับใช้เป็นแหล่งภาพชนิดเว็บในโปรแกรมไลฟ์ */
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: var(--tpl-font);
+    color: var(--tpl-text);
+  }
+  /* padding รอบนอกเผื่อไว้ให้เงา/glow ของป้ายไม่ถูกขอบกรอบตัดทิ้ง */
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 6px 8px;
+  }
+  body[data-align="center"] { justify-content: center; }
+  body[data-align="right"] { justify-content: flex-end; }
+
+  #pad {
+    /* ยังไม่รู้สถานะ = ไม่แสดงอะไรเลย ปลอดภัยกว่าเดาว่าเปิด — ปกติจะรู้ทันทีที่ต่อติด
+       เพราะสถานะแรกมากับ snapshot จึงไม่เห็นช่วงว่างนี้เกินเสี้ยววินาที */
+    display: none;
+    align-items: center;
+    gap: 9px;
+    max-width: var(--tpl-width, 450px);
+    background: var(--pan-bg);
+    border: var(--pan-border);
+    border-radius: var(--pan-radius);
+    box-shadow: var(--pan-shadow);
+    padding: var(--pan-pad);
+    color: var(--tpl-text);
+  }
+  #pad.show { display: inline-flex; }
+  #pad.on { animation: pad-in 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+
+  /* จุดกระพริบ — สิ่งที่สะดุดตาที่สุดตอนเหลือบมองจอสตรีมแวบเดียว */
+  .dot {
+    position: relative;
+    flex: 0 0 auto;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, var(--accent, #fe2c55), var(--accent2, #25f4ee));
+    box-shadow: 0 0 9px var(--accent-glow, rgba(254, 44, 85, 0.55));
+  }
+  #pad.on .dot { animation: pad-pulse 1s ease-in-out infinite alternate; }
+  /* วงแหวนกระเพื่อมออกจากจุด — ช่วยให้เห็นจากหางตาแม้ป้ายเล็ก */
+  #pad.on .dot::after {
+    content: '';
+    position: absolute; inset: -4px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-ring, rgba(254, 44, 85, 0.7));
+    animation: pad-ring 1.6s ease-out infinite;
+  }
+  #pad.nodot .dot { display: none; }
+
+  .txt { min-width: 0; }
+  .label {
+    display: block;
+    font-weight: var(--tpl-weight);
+    font-size: 17px;
+    line-height: 1.15;
+    letter-spacing: var(--tpl-track);
+    text-transform: var(--tpl-caps);
+    text-shadow: var(--tpl-shadow);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* บรรทัดรอง (ชื่อชุด/จำนวนปุ่ม) — ซ่อนเองเมื่อไม่มีข้อความ จะได้ไม่กินความสูงเปล่าๆ */
+  .sub {
+    display: none;
+    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tpl-dim, rgba(236, 236, 241, 0.6));
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #pad.has-sub .sub { display: block; }
+
+  /* ระบบปิด (เห็นเฉพาะ ?hideoff=0): จางลง จุดหยุดนิ่ง — ต้องดูไม่เด่นจนแย่งสายตาคนดู */
+  #pad.is-off { opacity: 0.5; }
+  #pad.is-off .dot {
+    background: var(--tpl-dim, rgba(236, 236, 241, 0.6));
+    box-shadow: none;
+  }
+
+  @keyframes pad-in {
+    from { opacity: 0; transform: translateY(-4px) scale(0.94); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes pad-pulse {
+    from { opacity: 0.35; }
+    to   { opacity: 1; }
+  }
+  @keyframes pad-ring {
+    0%   { opacity: 0.65; transform: scale(0.7); }
+    100% { opacity: 0; transform: scale(1.9); }
+  }
+
+  /* ================= ธีม (?template=) ================= */
+
+  /* neon — ป้ายเรืองแสงทั้งกล่อง ตัวอักษรมี glow */
+  [data-tpl="neon"] #pad { box-shadow: var(--tpl-glow); }
+  [data-tpl="neon"] .label { text-shadow: var(--tpl-text-glow); }
+  [data-tpl="neon"] #pad.on { box-shadow: var(--tpl-glow-strong); }
+
+  /* glass — จุดเป็นเม็ดขาวโปร่งบนพื้นกระจก ให้เข้ากับโทนนุ่มของธีม */
+  [data-tpl="glass"] .dot { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  [data-tpl="glass"] .label { font-size: 16px; }
+
+  /* arcade — จุดเป็นสี่เหลี่ยม กระพริบเป็นขั้นแบบไฟ 8-bit ไม่ไล่ความจาง */
+  [data-tpl="arcade"] .dot {
+    border-radius: 0;
+    background: var(--accent, #fe2c55);
+    box-shadow: none;
+  }
+  [data-tpl="arcade"] #pad.on .dot { animation: pad-blink-hard 0.5s steps(1) infinite alternate; }
+  [data-tpl="arcade"] #pad.on .dot::after { display: none; }
+  [data-tpl="arcade"] .label { font-size: 15px; }
+  @keyframes pad-blink-hard {
+    from { opacity: 0.15; }
+    to   { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+  <div id="pad">
+    <span class="dot"></span>
+    <span class="txt">
+      <span class="label" id="label">SOUNDPAD ON</span>
+      <span class="sub" id="sub"></span>
+    </span>
+  </div>
+
+  <script src="common/widget.js"></script>
+  <script>
+  (function () {
+    var params = TikkiesWidget.params;
+    var padEl = document.getElementById('pad');
+    var labelEl = document.getElementById('label');
+    var subEl = document.getElementById('sub');
+
+    // ป้ายบอก "ระบบเปิดอยู่" ไม่ใช่ "โหมดแพดเปิดอยู่" แล้ว — ค่าเริ่มต้นจึงเขียนชื่อระบบเต็มๆ
+    // ให้คนดูสตรีม (และตัวสตรีมเมอร์เอง) ไม่เข้าใจผิดว่าปุ่มกำลังถูกกินอยู่
+    var ON_TEXT = params.get('label') || 'SOUNDPAD ON';
+    var OFF_TEXT = params.get('offlabel') || 'SOUNDPAD OFF';
+    // ค่าเริ่มต้นคือซ่อนตอนปิด — ป้ายที่ค้างอยู่ทั้งไลฟ์ทั้งที่ไม่ได้ใช้มีแต่กินพื้นที่จอ
+    var HIDE_OFF = params.get('hideoff') !== '0';
+    var SHOW_BANK = params.get('bank') === '1';
+    var SHOW_COUNT = params.get('count') === '1';
+    // โหมดตัวอย่างในหน้าแต่งธีม: widget.js ไม่ได้ป้อน soundpadState มาให้
+    // ถ้าไม่บังคับให้เปิดไว้ กรอบตัวอย่างจะว่างเปล่าจนแต่งสีอะไรไม่ได้เลย
+    var PREVIEW = params.get('preview') === '1';
+
+    if (params.get('dot') === '0') padEl.classList.add('nodot');
+    var align = params.get('align');
+    if (align === 'center' || align === 'right') document.body.dataset.align = align;
+
+    // นับเฉพาะปุ่มที่ใส่ไฟล์ไว้จริง — ชุดปุ่มอาจมีคีย์ค้างที่ยังไม่มีไฟล์ (ผู้ใช้กดเลือกปุ่มไว้เฉยๆ
+    // แล้วยังไม่ได้ใส่เสียง) นับรวมด้วยจะขึ้นตัวเลขเกินจริงบนสตรีมโดยไม่มีใครรู้ตัว
+    function padCount(keys) {
+      if (!keys || typeof keys !== 'object') return 0;
+      var n = 0;
+      Object.keys(keys).forEach(function (k) {
+        var pad = keys[k];
+        if (pad && typeof pad === 'object' && pad.url) n += 1;
+      });
+      return n;
+    }
+
+    function render(st) {
+      if (!st || typeof st !== 'object') st = null;   // ข้อมูลผิดรูป = ถือว่าไม่รู้สถานะ ไม่ใช่พัง
+      var on = PREVIEW || !!(st && st.on);
+      padEl.classList.toggle('on', on);
+      padEl.classList.toggle('is-off', !on);
+      padEl.classList.toggle('show', on || !HIDE_OFF);
+      labelEl.textContent = on ? ON_TEXT : OFF_TEXT;
+
+      // ชื่อชุดมาจากที่ผู้ใช้ตั้งเอง — ใช้ textContent ไม่ประกอบ HTML จะได้ไม่ต้องกังวลเรื่อง escape
+      var parts = [];
+      if (SHOW_BANK && st && st.bank && st.bank.name) parts.push(st.bank.name);
+      if (SHOW_COUNT && st && st.keys) parts.push(padCount(st.keys) + ' keys');
+      subEl.textContent = parts.join(' · ');
+      padEl.classList.toggle('has-sub', parts.length > 0);
+    }
+
+    // แอปปิดไป = เล่นเสียงไม่ได้แน่นอน แต่ห้ามซ่อนทันทีที่ WS หลุด เพราะแค่รีสตาร์ทเซิร์ฟเวอร์
+    // ก็หลุดชั่ววินาทีเดียว ป้ายจะกระพริบหายๆ โผล่ๆ บนสตรีม — รอให้ต่อไม่ติดจริงก่อนค่อยซ่อน
+    var lost = null;
+    function clearLost() { if (lost) { clearTimeout(lost); lost = null; } }
+
+    if (PREVIEW) render(null);
+
+    TikkiesWidget.connect({
+      onEvent: function (event, data) {
+        if (event === 'snapshot') {
+          // สถานะตั้งต้นอยู่ในนี้ — 'soundpadState' broadcast เฉพาะตอนมีการเปลี่ยน ถ้ารอแต่ event
+          // ป้ายจะว่างตั้งแต่เปิดโปรแกรมไลฟ์ ไปจนกว่าจะมีคนกดสลับระบบสักครั้ง (เคสที่ผู้ตรวจเจอ)
+          // soundpad เป็น null ได้ (เซิร์ฟเวอร์รุ่นเก่า / โมดูลยังไม่พร้อมตอนเซิร์ฟเวอร์ขึ้น)
+          // กรณีนั้นอย่าเดาว่าเปิดหรือปิด — ปล่อยป้ายไว้เฉยๆ ให้ event ตัวจริงมาบอกทีหลัง
+          if (data && data.soundpad) render(data.soundpad);
+          return;
+        }
+        if (event === 'soundpadState') return render(data);
+      },
+      onOpen: clearLost,
+      onClose: function () {
+        if (lost) return;   // กำลังนับถอยหลังอยู่แล้ว อย่ารีเซ็ตทุกครั้งที่ลอง reconnect
+        lost = setTimeout(function () { lost = null; render(null); }, 3000);
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

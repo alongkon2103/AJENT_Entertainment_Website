@@ -1,0 +1,75 @@
+// SQLite for now. For PostgreSQL: set provider = "postgresql", point DATABASE_URL at Postgres,
+// swap the adapter in lib/db.ts to @prisma/adapter-pg, then run `npx prisma migrate dev` to create fresh migrations.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// One table for every label the admin manages. `kind` is one of:
+/// "game-category" (filter + card label), "game-badge" (HOT, NEW, ...), "news-category" (news card tag).
+model Tag {
+  id        Int      @id @default(autoincrement())
+  kind      String
+  name      String
+  slug      String
+  color     String   @default("#8b5cf6")
+  textColor String   @default("#ffffff")
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categoryGames Game[] @relation("GameCategory")
+  badgeGames    Game[] @relation("GameBadges")
+  news          News[]
+
+  @@unique([kind, slug])
+  @@index([kind, sortOrder])
+}
+
+model Game {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  name        String
+  genre       String   @default("")
+  excerpt     String   @default("")
+  content     String   @default("")
+  coverImage  String   @default("")
+  playUrl     String   @default("")
+  rating      Float    @default(0)
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  categoryId Int?
+  category   Tag?  @relation("GameCategory", fields: [categoryId], references: [id], onDelete: SetNull)
+  badges     Tag[] @relation("GameBadges")
+
+  @@index([isPublished, sortOrder])
+}
+
+model News {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  title       String
+  excerpt     String   @default("")
+  content     String   @default("")
+  coverImage  String   @default("")
+  isPublished Boolean  @default(false)
+  isPinned    Boolean  @default(false)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  categoryId Int?
+  category   Tag? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([isPublished, publishedAt])
+}

@@ -1,0 +1,542 @@
+<!--
+  Tikkies Tools — Like Leaderboard (อันดับคนกดหัวใจ สำหรับ แหล่งภาพชนิดเว็บของโปรแกรมไลฟ์)
+
+  วิธีใช้:
+    เพิ่ม http://localhost:21213/widgets/likers.html เป็น แหล่งภาพชนิดเว็บในโปรแกรมไลฟ์
+    (พื้นหลังโปร่งใส แนะนำขนาดกว้าง 340 สูง 400)
+
+  พารามิเตอร์ (ต่อท้าย URL):
+    ?top=5            จำนวนอันดับที่แสดง
+    ?title=ข้อความ    เปลี่ยนหัวข้อ; ?title=0 เพื่อซ่อน
+    ?accent=#ff2d55   สีกรอบอันดับ 1
+    ?avatars=0        ซ่อนรูปโปรไฟล์
+    ?total=1          โชว์ยอดหัวใจรวมของห้องใต้หัวข้อ
+    ?bar=0            ซ่อนแถบสัดส่วนหลังชื่อ
+    ?scale=120        ย่อ/ขยายทั้งชุด (%)
+    ?host= / ?port=   กรณีเปิดจากเครื่อง/พอร์ตอื่น
+
+  หมายเหตุ: นับเฉพาะหัวใจที่กดหลังโปรแกรมเชื่อมต่อแล้ว — ก่อนหน้านั้น TikTok
+  ส่งมาแค่ยอดรวมของห้อง ไม่มีข้อมูลรายคน จึงย้อนหลังไม่ได้
+
+  ข้อมูล: ฟัง event 'likeboard' และตั้งค่าเริ่มต้นจาก snapshot.likeboard
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Like Leaderboard</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<link rel="stylesheet" href="common/templates.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; width: 100%; height: 100%; overflow: hidden;
+    font-family: var(--tpl-font);
+    color: #ececf1;
+  }
+  #board { padding: 12px; max-width: var(--tpl-width, 450px); }
+  .title {
+    font-weight: 800; font-size: 18px; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 7px;
+    text-shadow: 0 1px 3px rgba(0,0,0,.8);
+  }
+  .title svg { width: 17px; height: 17px; flex: none; }
+  .total {
+    font-size: 12.5px; color: rgba(236,236,241,.62); margin-bottom: 10px;
+    font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0,0,0,.8);
+  }
+  .row {
+    position: relative; display: flex; align-items: center; gap: 10px;
+    background: var(--pan-bg, rgba(18,18,22,.62));
+    border: var(--pan-border, 0 solid transparent);
+    border-radius: var(--pan-radius, 12px);
+    box-shadow: var(--pan-shadow, none);
+    padding: var(--pan-pad, 8px 12px); margin-bottom: var(--rowgap, 8px); overflow: hidden;
+    transition: transform .45s cubic-bezier(.22,1,.36,1), opacity .4s ease;
+  }
+  .row.enter { opacity: 0; transform: translateY(8px); }
+  .row.top1 { background: var(--pan-bg-strong, rgba(18,18,22,.78)); box-shadow: inset 0 0 0 1.5px var(--accent, #fe2c55); }
+  /* แถบสัดส่วน — เทียบกับอันดับ 1 ให้เห็นช่องว่างระหว่างอันดับทันที */
+  .bar {
+    position: absolute; left: 0; top: 0; bottom: 0; z-index: 0;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #fe2c55) 34%, transparent), transparent);
+    transition: width .5s cubic-bezier(.22,1,.36,1);
+  }
+  .row > *:not(.bar) { position: relative; z-index: 1; }
+  .rank {
+    flex: none; width: 24px; text-align: center;
+    font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums;
+  }
+  .avatar {
+    flex: none; width: var(--av, 36px); height: var(--av, 36px); border-radius: 50%;
+    background-size: cover; background-position: center;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 15px; color: #fff;
+  }
+  .who { flex: 1; min-width: 0; }
+  .nick {
+    color: var(--tpl-text, inherit);
+    font-weight: 650; font-size: 14.5px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sub { font-size: 11.5px; color: rgba(236,236,241,.55); }
+  .likes {
+    flex: none; display: flex; align-items: center; gap: 4px;
+    font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums;
+    color: var(--valuecolor, var(--accent, #fe2c55));
+  }
+  .likes svg { width: 13px; height: 13px; }
+  .empty { font-size: 13px; color: rgba(236,236,241,.5); padding: 6px 2px; }
+
+  /* ================= ธีม (?template=) ================= */
+
+  /* neon — แถวเป็นแถบเหลี่ยม ขีดเรืองแสงหน้าแถว อันดับเป็นตัวเลขนีออน */
+  [data-tpl="neon"] .row {
+    background: rgba(6, 6, 12, 0.6);
+    border-radius: 2px;
+    border-left: 3px solid var(--accent, #fe2c55);
+    box-shadow: -1px 0 12px var(--accent-weak, rgba(254,44,85,.22));
+  }
+  [data-tpl="neon"] .rank {
+    color: var(--accent, #fe2c55);
+    text-shadow: 0 0 10px var(--accent-glow, rgba(254,44,85,.55));
+  }
+  [data-tpl="neon"] .avatar { border-radius: 2px; box-shadow: 0 0 0 1px var(--accent, #fe2c55); }
+  [data-tpl="neon"] .avatar img { border-radius: 2px; }
+  [data-tpl="neon"] .name { text-transform: uppercase; letter-spacing: .05em; font-size: 13.5px; }
+  [data-tpl="neon"] .title {
+    text-transform: uppercase; letter-spacing: .12em;
+    color: var(--accent, #fe2c55);
+    text-shadow: 0 0 12px var(--accent-glow, rgba(254,44,85,.55));
+  }
+  [data-tpl="neon"] .row.top1 {
+    background: rgba(6, 6, 12, 0.82);
+    box-shadow: -1px 0 20px var(--accent-glow, rgba(254,44,85,.55)), inset 0 0 22px var(--accent-weak, rgba(254,44,85,.22));
+  }
+
+  /* glass — การ์ดกระจกมนๆ อันดับเป็นเหรียญกลม */
+  [data-tpl="glass"] .row {
+    background: var(--pan-bg);
+    border: var(--pan-border);
+    border-radius: 999px;
+    box-shadow: var(--pan-shadow);
+    backdrop-filter: var(--pan-blur);
+    -webkit-backdrop-filter: var(--pan-blur);
+    padding: 7px 14px 7px 8px;
+  }
+  [data-tpl="glass"] .rank {
+    width: 24px; height: 24px; line-height: 24px;
+    border-radius: 50%; font-size: 13px;
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
+  }
+  [data-tpl="glass"] .avatar { box-shadow: 0 0 0 2px rgba(255,255,255,.35); }
+  [data-tpl="glass"] .title { font-weight: 650; color: #fff; }
+  [data-tpl="glass"] .row.top1 {
+    background: rgba(255, 255, 255, 0.24);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.45), 0 8px 26px rgba(0,0,0,.3);
+  }
+  [data-tpl="glass"] .row.top1 .rank { background: #fff; color: #1a1a22; }
+
+  /* arcade — แถวเป็นบล็อกขอบหนา อันดับเป็นป้ายพื้นทึบ */
+  [data-tpl="arcade"] .row {
+    background: #12121c;
+    border: 3px solid #fff;
+    border-radius: 0;
+    box-shadow: 4px 4px 0 rgba(0,0,0,.85);
+    margin-bottom: 10px;
+  }
+  [data-tpl="arcade"] .rank {
+    background: var(--accent, #fe2c55);
+    color: #fff; width: 26px; height: 26px; line-height: 26px;
+    font-size: 14px; text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+  }
+  [data-tpl="arcade"] .avatar { border-radius: 0; border: 2px solid #fff; }
+  [data-tpl="arcade"] .avatar img { border-radius: 0; }
+  [data-tpl="arcade"] .name { font-size: 13px; }
+  [data-tpl="arcade"] .title { text-transform: uppercase; letter-spacing: .06em; }
+  [data-tpl="arcade"] .row.top1 {
+    background: #1c1c2c;
+    border-color: var(--accent, #fe2c55);
+    box-shadow: 4px 4px 0 rgba(0,0,0,.85), inset 0 0 0 2px rgba(255,255,255,.15);
+  }
+  [data-tpl="neon"] .likes { text-shadow: 0 0 10px var(--accent, #fe2c55); }
+  [data-tpl="neon"] .bar { background: linear-gradient(90deg, var(--accent, #fe2c55), transparent); opacity: .5; }
+  [data-tpl="glass"] .likes { color: #fff; }
+  [data-tpl="glass"] .bar { background: linear-gradient(90deg, rgba(255,255,255,.3), transparent); }
+  [data-tpl="arcade"] .likes { text-shadow: 2px 2px 0 rgba(0,0,0,.9); }
+  [data-tpl="arcade"] .bar { background: var(--accent, #fe2c55); opacity: .28; }
+  [data-tpl="arcade"] .sub { display: none; }
+
+  /* plain — แถบสัดส่วนเป็นพื้นหลังเต็มแถว ธีมนี้จึงเอาออก
+   * ข้อมูลไม่หาย เพราะตัวเลขยอดไลก์กับอันดับยังอยู่ครบ
+   * อันดับ 1 เดิมเน้นด้วยพื้นทึบ + วงขอบ ย้ายไปเน้นที่สีตัวอักษรแทน */
+  [data-tpl="plain"] .bar { display: none; }
+  [data-tpl="plain"] .row.top1 { background: none; box-shadow: none; }
+  [data-tpl="plain"] .row.top1 .name { color: var(--accent, #fe2c55); }
+  /* ---------- โหมดโพเดียม (?layout=podium) ----------
+     3 อันดับแรกยกขึ้นเป็นการ์ดมีมงกุฎ อันดับ 1 อยู่กลางและสูงกว่าเพื่อน
+     อันดับ 4 ลงไปยังเป็นแถวเหมือนเดิม เพราะการ์ดกินที่มาก ถ้าทำทุกอันดับจะล้นจอ
+
+     ทำไมไม่ใช้สีทึบสีเดียว: สีแบนๆ อ่านเป็นงานสำเร็จรูป การ์ดรางวัลที่ดูมีราคาได้มาจาก
+     "แสงตกจากด้านบน" — ขอบบนสว่าง ท้องการ์ดเข้ม ขอบในบางๆ คั่น แล้วมีเงาจริงรองข้างล่าง
+     เฉดอ่อน/เข้มคำนวณจากสีที่ผู้ใช้เลือกเอง (ดู TikkiesWidget.shade) ผู้ใช้จึงยังคุมสีได้
+     แต่ได้มิติมาให้ฟรีโดยไม่ต้องเลือกสีเองสามค่า */
+  #podium { display: none; }
+  [data-layout="podium"] #podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: var(--podgap, 10px);
+    margin-bottom: 14px;
+    padding-top: 6px;
+  }
+  .pod { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+
+  .pcard {
+    width: 100%;
+    position: relative;
+    border-radius: 16px;
+    padding: 15px 7px 12px;
+    text-align: center;
+    background: linear-gradient(177deg, var(--pod-hi) 0%, var(--pod-c) 45%, var(--pod-lo) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),   /* เส้นแสงขอบบน = ตัวที่ทำให้ดูมีผิว ไม่ใช่สี่เหลี่ยมสี */
+      inset 0 -1px 0 rgba(0, 0, 0, 0.14),
+      0 0 0 1px rgba(255, 255, 255, 0.28),       /* ขอบบางๆ คั่นการ์ดออกจากฉากมืดข้างหลัง */
+      0 10px 22px rgba(0, 0, 0, 0.42);
+    overflow: hidden;
+  }
+  /* อันดับ 1 สูงกว่า กว้างกว่า และมีแสงเรืองสีตัวเอง — เห็นปุ๊บรู้เลยว่าใครที่หนึ่ง */
+  .pod[data-slot="1"] { flex-grow: 1.3; }
+  .pod[data-slot="1"] .pcard {
+    padding: 22px 8px 16px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.16),
+      0 0 0 1px rgba(255, 255, 255, 0.34),
+      0 14px 30px rgba(0, 0, 0, 0.48),
+      0 0 30px var(--pod-glow);
+  }
+  /* แสงกวาดผ่านการ์ดที่หนึ่งช้าๆ — รายละเอียดที่ทำให้ดูเป็นของมีราคา ไม่ใช่ภาพนิ่ง
+     ปิดตามได้ด้วย ?anim=0 เหมือน widget อื่น (กฎรวมอยู่ใน templates.css) */
+  .pod[data-slot="1"] .pcard::after {
+    content: '';
+    position: absolute; top: -60%; bottom: -60%; left: -40%; width: 28%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    transform: rotate(8deg);
+    animation: podShine 5.5s ease-in-out 1.2s infinite;
+    pointer-events: none;
+  }
+  @keyframes podShine { 0% { left: -40%; } 55%, 100% { left: 130%; } }
+
+  .pav {
+    width: var(--podav, 58px); height: var(--podav, 58px);
+    margin: 0 auto 17px;
+    border-radius: 50%;
+    overflow: hidden; position: relative;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 22px; color: #fff;
+    /* วงแหวนสองชั้น: ขาวด้านใน + เฉดเข้มของสีอันดับด้านนอก ให้รูปดูจมลงไปในการ์ด */
+    box-shadow:
+      0 0 0 3px rgba(255, 255, 255, 0.9),
+      0 0 0 5px var(--pod-lo),
+      0 3px 8px rgba(0, 0, 0, 0.3);
+  }
+  .pod[data-slot="1"] .pav { width: calc(var(--podav, 58px) * 1.2); height: calc(var(--podav, 58px) * 1.2); }
+  .pav img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  /* เหรียญเลขอันดับ คร่อมขอบล่างของรูป */
+  .pmedal {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    top: calc(var(--podav, 58px) * 0.78 + 15px);
+    width: 27px; height: 27px; border-radius: 50%;
+    background: linear-gradient(180deg, var(--pod-hi), var(--pod-lo));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 0 0 2px rgba(255, 255, 255, 0.9),
+      0 2px 6px rgba(0, 0, 0, 0.45);
+    display: grid; place-items: center;
+    font-weight: 900; font-size: 14px; color: rgba(0, 0, 0, 0.75);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+    font-variant-numeric: tabular-nums;
+  }
+  .pod[data-slot="1"] .pmedal {
+    top: calc(var(--podav, 58px) * 1.2 * 0.78 + 22px);
+    width: 31px; height: 31px; font-size: 16px;
+  }
+
+  /* ตัวอักษรบนการ์ดสีอ่อนต้องเป็นสีเข้ม ไม่ใช่ขาวเหมือนแถวปกติ ไม่งั้นอ่านไม่ออก
+     เงาขาวบางๆ ใต้ตัวอักษรทำให้ดูเหมือนพิมพ์ลงบนผิวการ์ด ไม่ใช่ลอยอยู่ข้างบน */
+  .pname {
+    position: relative; z-index: 1;
+    color: rgba(0, 0, 0, 0.82); font-weight: 700; font-size: 13px;
+    letter-spacing: .1px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding: 0 2px;
+  }
+  .pod[data-slot="1"] .pname { font-size: 14px; font-weight: 800; }
+  .pdia {
+    position: relative; z-index: 1;
+    color: rgba(0, 0, 0, 0.74); font-weight: 800; font-size: 14px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+    font-variant-numeric: tabular-nums; margin-top: 3px;
+  }
+  .pod[data-slot="1"] .pdia { font-size: 16px; }
+
+  .pod .crown {
+    width: var(--crown, 26px); height: auto;
+    display: block; margin-bottom: -5px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  }
+  .pod[data-slot="1"] .crown { width: calc(var(--crown, 26px) * 1.35); }
+  .pod.empty-slot { visibility: hidden; }   /* ยังไม่ครบ 3 คน — เว้นที่ไว้ ไม่ให้การ์ดที่เหลือขยับ */
+
+</style>
+</head>
+<body>
+
+<div id="board">
+  <div class="title" id="title">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 21s-7.5-4.7-9.6-9A5.5 5.5 0 0 1 12 6.2 5.5 5.5 0 0 1 21.6 12c-2.1 4.3-9.6 9-9.6 9z"/>
+    </svg>
+    <span id="titleText"></span>
+  </div>
+  <div class="total" id="total" hidden></div>
+  <div id="podium">
+    <div class="pod" data-slot="2"></div>
+    <div class="pod" data-slot="1"></div>
+    <div class="pod" data-slot="3"></div>
+  </div>
+  <div id="rows"></div>
+</div>
+
+<script src="common/widget.js"></script>
+<script>
+(function () {
+  var P = TikkiesWidget.params;
+    var T = TikkiesWidget.T;   // ค่าเริ่มต้นตามภาษาที่ผู้ใช้ตั้งไว้ในโปรแกรม
+  var esc = TikkiesWidget.escapeHtml;
+  var safeUrl = TikkiesWidget.safeUrl;
+
+  // ?avatarsize= ขนาดรูปโปรไฟล์, ?rowgap= ระยะห่างระหว่างแถว, ?valuecolor= สีตัวเลขท้ายแถว
+  (function () {
+    var P2 = TikkiesWidget.params, R = document.documentElement.style;
+    function n2(k, min, max) { var v = P2.get(k); if (v == null || v === '') return null; v = Number(v); return isFinite(v) ? Math.min(max, Math.max(min, v)) : null; }
+    var av = n2('avatarsize', 0, 120); if (av != null) R.setProperty('--av', av + 'px');
+    var rg = n2('rowgap', 0, 40); if (rg != null) R.setProperty('--rowgap', rg + 'px');
+    var vc = String(P2.get('valuecolor') || '').replace(/^#/, '');
+    if (/^[0-9a-f]{3}$|^[0-9a-f]{6}$/i.test(vc)) R.setProperty('--valuecolor', '#' + vc);
+  })();
+  var fmt = TikkiesWidget.formatNumber;
+  var colorFor = function (id) {
+    var h = 0, s = String(id || '?');
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+    return 'hsl(' + h + ', 55%, 45%)';
+  };
+
+  function flag(k, d) { var v = P.get(k); return v === null ? d : (v === '1' || v === 'true'); }
+
+  var TOP = Math.max(1, Math.min(20, Number(P.get('top')) || 5));
+  var SHOW_AVATAR = flag('avatars', true);
+  var SHOW_TOTAL = flag('total', false);
+  var SHOW_BAR = flag('bar', true);
+
+  // ---------- โหมดโพเดียม (?layout=podium) ----------
+  // ใช้โครงเดียวกับกระดานผู้ให้ของขวัญ ต่างแค่หน่วยเป็น "หัวใจ" ไม่ใช่เพชร
+  var PODIUM = P.get('layout') === 'podium';
+  var PODIUM_N = PODIUM ? 3 : 0;
+  var podEls = {};
+  function crownSvg(slot) {
+      return '<svg class="crown" viewBox="0 0 28 20" fill="none" aria-hidden="true">' +
+      // ไล่เฉดในตัวมงกุฎเอง — ทองแบนๆ อ่านเป็นคลิปอาร์ต ทองที่มีอ่อน-เข้มอ่านเป็นโลหะ
+      // id ต้องไม่ซ้ำกันระหว่างการ์ดสามใบ ไม่งั้นทั้งสามจะไปใช้เฉดของใบแรกใบเดียว
+      '<defs><linearGradient id="cg' + slot + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="var(--pod-hi)"/><stop offset="1" stop-color="var(--pod-lo)"/>' +
+      '</linearGradient></defs>' +
+      '<g fill="url(#cg' + slot + ')" stroke="url(#cg' + slot + ')">' +
+      '<path d="M4.2 14.4 L2.4 4.6 L9.4 9.8 L14 1.8 L18.6 9.8 L25.6 4.6 L23.8 14.4 Z" ' +
+      'stroke-width="1.8" stroke-linejoin="round"/>' +
+      '<circle cx="2.4" cy="4.2" r="1.9"/><circle cx="14" cy="1.9" r="2.1"/><circle cx="25.6" cy="4.2" r="1.9"/>' +
+      '<rect x="3.4" y="14" width="21.2" height="4" rx="2"/>' +
+      '</g></svg>';
+    }
+  if (PODIUM) {
+    document.documentElement.dataset.layout = 'podium';
+    [1, 2, 3].forEach(function (n) { podEls[n] = document.querySelector('#podium .pod[data-slot="' + n + '"]'); });
+    // รับเฉพาะ hex — ค่านี้มาจาก URL ที่ผู้ใช้แก้เองได้ ถ้าปล่อยดิบลง CSS จะแทรกกฎอื่นต่อท้ายได้
+    var HEXC = /^#?[0-9a-f]{3,8}$/i;
+    var DEFC = { 1: '#f6e58d', 2: '#ded3f5', 3: '#f8c8a0' };
+    [1, 2, 3].forEach(function (n) {
+      var raw = String(P.get('rank' + n) || '').trim();
+      var c = HEXC.test(raw) ? (raw.charAt(0) === '#' ? raw : '#' + raw) : DEFC[n];
+      if (!podEls[n]) return;
+      var st = podEls[n].style;
+      st.setProperty('--pod-c', c);
+      st.setProperty('--pod-hi', TikkiesWidget.shade(c, 0.38));   // ขอบบนที่โดนแสง
+      st.setProperty('--pod-lo', TikkiesWidget.shade(c, -0.26));  // ท้องการ์ดที่อยู่ในเงา
+      st.setProperty('--pod-glow', TikkiesWidget.rgba(c, 0.45));  // แสงเรืองของอันดับ 1
+    });
+    if (P.get('crown') === '0') {
+      var cst = document.createElement('style');
+      cst.textContent = '.pod .crown { display: none; }';
+      document.head.appendChild(cst);
+    }
+    var pav = parseInt(P.get('podav'), 10);
+    if (pav > 0) document.documentElement.style.setProperty('--podav', Math.min(160, Math.max(28, pav)) + 'px');
+  }
+
+  function fillPod(slot, u) {
+    var pod = podEls[slot];
+    if (!pod) return;
+    if (!u) { pod.classList.add('empty-slot'); pod.innerHTML = ''; pod.dataset.sig = ''; return; }
+    pod.classList.remove('empty-slot');
+    var avUrl = safeUrl(u.profilePictureUrl);
+    var sig = slot + '|' + (u.uniqueId || '') + '|' + (u.nickname || '') + '|' + (u.likes || 0) + '|' + avUrl;
+    // เขียนใหม่เฉพาะตอนเนื้อหาเปลี่ยนจริง ไม่งั้นรูปจะโหลดใหม่ทุกครั้งที่กระดานอัปเดต (กะพริบ)
+    if (pod.dataset.sig === sig) return;
+    pod.dataset.sig = sig;
+    var initial = esc(String(u.nickname || u.uniqueId || '?').trim().charAt(0).toUpperCase() || '?');
+    var img = avUrl ? '<img src="' + esc(avUrl) + '" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.remove()">' : '';
+    pod.innerHTML =
+      crownSvg(slot) +
+      '<div class="pcard">' +
+        '<div class="pav" style="background-color:' + colorFor(u.uniqueId) + '">' + initial + img + '</div>' +
+        '<div class="pmedal">' + slot + '</div>' +
+        '<div class="pname">' + esc(u.nickname || u.uniqueId || '') + '</div>' +
+        '<div class="pdia">❤ ' + fmt(u.likes) + '</div>' +
+      '</div>';
+  }
+  var titleParam = P.get('title');
+
+  var titleEl = document.getElementById('title');
+  var totalEl = document.getElementById('total');
+  var rowsEl = document.getElementById('rows');
+
+  // การย่อ/ขยาย (?scale=) จัดการที่ common/look.js ตัวเดียว (body.style.zoom) เหมือน widget อื่น
+  // เดิม likers เซ็ต transform: scale ของตัวเองเพิ่มด้วย ทำให้ซ้อนกันสองชั้น (scale=200 ได้ 4 เท่า)
+
+  if (titleParam === '0') titleEl.style.display = 'none';
+  else document.getElementById('titleText').textContent = titleParam || T('อันดับคนกดหัวใจ', 'Top likers');
+
+  var prev = new Map(); // uniqueId -> ตำแหน่ง y เดิม ใช้ทำอนิเมชันสลับอันดับ
+
+  function render(top, totalLikes) {
+    top = Array.isArray(top) ? top.slice(0, TOP) : [];
+
+    if (SHOW_TOTAL && typeof totalLikes === 'number') {
+      totalEl.hidden = false;
+      totalEl.textContent = T('หัวใจทั้งห้อง ', 'Room likes ') + fmt(totalLikes);
+    }
+
+    if (PODIUM) {
+      fillPod(1, top[0]); fillPod(2, top[1]); fillPod(3, top[2]);
+      top = top.slice(PODIUM_N);
+    }
+
+    if (!top.length) {
+      // โหมดโพเดียมที่มีคนไม่ถึง 4 ไม่ใช่ "ยังไม่มีใครกดหัวใจ" — การ์ดข้างบนมีคนอยู่แล้ว
+      rowsEl.innerHTML = (PODIUM && podEls[1] && !podEls[1].classList.contains('empty-slot'))
+        ? '' : '<div class="empty">ยังไม่มีใครกดหัวใจ</div>';
+      return;
+    }
+
+    // Map ไม่ใช่ object ธรรมดา — uid มาจากผู้ชม ชื่ออย่าง constructor/toString จะไปชนกับ
+    // property ที่สืบทอดมาจาก Object.prototype แล้วอ่านได้ค่าที่ไม่ใช่ตำแหน่งจริง (FLIP เพี้ยน)
+    var before = new Map();
+    Array.prototype.forEach.call(rowsEl.children, function (el) {
+      if (el.dataset && el.dataset.uid) before.set(el.dataset.uid, el.getBoundingClientRect().top);
+    });
+
+    var max = top[0].likes || 1;
+    rowsEl.innerHTML = '';
+    top.forEach(function (u, i) {
+      var row = document.createElement('div');
+      row.className = 'row' + (!PODIUM && i === 0 ? ' top1' : '');
+      row.dataset.uid = u.uniqueId || String(i);
+
+      var pct = SHOW_BAR ? Math.max(4, Math.round((u.likes / max) * 100)) : 0;
+      var avatar = '';
+      if (SHOW_AVATAR) {
+        // String() ก่อน trim — nickname อาจมาเป็น number ได้ ถ้าไม่ครอบจะโยนแล้วกระดานค้าง
+        var initial = esc(String(u.nickname || u.uniqueId || '?').trim().charAt(0).toUpperCase());
+        // safeUrl ก่อนเสมอ — ค่านี้มาจากผู้ชม ถ้าหลุดออกจาก url() ได้ก็แปะ CSS ทับ overlay ได้ทั้งจอ
+        var avUrl = safeUrl(u.profilePictureUrl);
+        avatar = avUrl
+          ? '<div class="avatar" style="background-image:url(' + esc(avUrl) + ')"></div>'
+          : '<div class="avatar" style="background:' + colorFor(u.uniqueId) + '">' + initial + '</div>';
+      }
+
+      row.innerHTML =
+        (SHOW_BAR ? '<div class="bar" style="width:' + pct + '%"></div>' : '') +
+        '<div class="rank">' + (i + 1 + PODIUM_N) + '</div>' +
+        avatar +
+        '<div class="who">' +
+          '<div class="nick">' + esc(u.nickname || u.uniqueId || '') + '</div>' +
+          '<div class="sub">@' + esc(u.uniqueId || '') + '</div>' +
+        '</div>' +
+        '<div class="likes">' +
+          '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.7-9.6-9A5.5 5.5 0 0 1 12 6.2 5.5 5.5 0 0 1 21.6 12c-2.1 4.3-9.6 9-9.6 9z"/></svg>' +
+          fmt(u.likes) +
+        '</div>';
+      rowsEl.appendChild(row);
+    });
+
+    // เลื่อนอันดับแบบไหลลื่น (FLIP) — คนที่ขยับอันดับจะเห็นว่าขยับจากตรงไหนไปตรงไหน
+    Array.prototype.forEach.call(rowsEl.children, function (el) {
+      var uid = el.dataset.uid;
+      var now = el.getBoundingClientRect().top;
+      if (before.has(uid)) {
+        var dy = before.get(uid) - now;
+        if (dy) {
+          el.style.transition = 'none';
+          el.style.transform = 'translateY(' + dy + 'px)';
+          requestAnimationFrame(function () {
+            el.style.transition = '';
+            el.style.transform = '';
+          });
+        }
+      } else {
+        el.classList.add('enter');
+        setTimeout(function () { el.classList.remove('enter'); }, 0);
+      }
+    });
+    prev = before;
+  }
+
+  render([], 0);
+
+  // ?period=session|today|week|month|all — ดูหมายเหตุเดียวกับ leaderboard.html
+  var PERIOD = P.get('period') || 'session';
+  if (PERIOD !== 'session') {
+    var base = 'http://' + (P.get('host') || location.hostname || 'localhost') +
+               ':' + (P.get('port') || location.port || 21213);
+    var url = base + '/api/rollup?metric=likes&limit=' + TOP + '&period=' + encodeURIComponent(PERIOD);
+    var pull = function () {
+      fetch(url).then(function (r) { return r.json(); })
+        .then(function (d) { render((d && d.top) || [], d && d.room && d.room.likes); })
+        .catch(function () {});
+    };
+    pull();
+    setInterval(pull, 20000);
+  }
+
+  TikkiesWidget.connect({
+    onEvent: function (event, data) {
+      if (PERIOD !== 'session') return;   // โหมดสะสม: ไม่ให้ยอดของไลฟ์นี้มาทับ
+      if (event === 'snapshot') {
+        var lb = data && data.likeboard;
+        return render(lb && lb.top, lb && lb.totalLikes);
+      }
+      if (event === 'likeboard') return render(data && data.top, data && data.totalLikes);
+    }
+  });
+})();
+</script>
+</body>
+</html>

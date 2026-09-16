@@ -1,0 +1,169 @@
+<!--
+  Tikkies Tools — Win Counter Widget (ตัวนับชัยชนะ)
+
+  โอเวอร์เลย์นับแพ้/ชนะสำหรับสายเกม แสดงเป็น  7 / 13  (ยอด / เป้า)
+  กดเพิ่ม-ลดด้วยคีย์ลัด global จากในแอป (กดขณะอยู่ในเกมได้เลย)
+
+  พารามิเตอร์ (ทับค่าที่ตั้งในแอปได้):
+    ?size=80        ขนาดตัวอักษร (px)
+    ?scale=100      ย่อ/ขยายทั้ง widget (%)
+    ?max=0          ซ่อนเป้า (ไม่แสดง / 13)
+    ?label=0        ซ่อนข้อความกำกับ
+    ?bg=0           พื้นหลังโปร่งใสสนิท
+    ?host= / ?port= กรณีเปิดจากเครื่อง/พอร์ตอื่น
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Win Counter</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; width: 100%; height: 100%; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, 'Helvetica Neue', 'Thonburi', sans-serif;
+  }
+
+  #box {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: var(--gap, 0.18em);
+    padding: 0.12em 0.34em;
+    border-radius: 0.14em;
+    line-height: 1.05;
+    white-space: nowrap;
+  }
+  #box.vertical { flex-direction: column; gap: 0; }
+
+  /* ตัวเลข/ข้อความ — เส้นขอบใช้ paint-order ให้ขอบอยู่หลังตัวอักษร (คมกว่า text-shadow) */
+  .part {
+    font-weight: var(--weight, 700);
+    font-size: 1em;
+    -webkit-text-stroke: var(--stroke, 0) var(--stroke-color, #000);
+    paint-order: stroke fill;
+  }
+  #label { font-size: 0.42em; letter-spacing: 0.08em; opacity: 0.95; }
+  #box.vertical #label { margin-top: 0.1em; }
+
+  /* จังหวะตอนค่าเปลี่ยน — บอกว่ามีการนับจริง */
+  @keyframes pop { 0% { transform: scale(1); } 38% { transform: scale(1.16); } 100% { transform: scale(1); } }
+  .bump { animation: pop 0.34s cubic-bezier(0.3, 1.4, 0.5, 1); }
+  @media (prefers-reduced-motion: reduce) { .bump { animation: none; } }
+</style>
+</head>
+<body>
+  <div id="box">
+    <span class="part" id="wins">0</span>
+    <span class="part" id="sep">/</span>
+    <span class="part" id="max">0</span>
+    <span class="part" id="label"></span>
+  </div>
+
+  <script src="common/widget.js"></script>
+  <script>
+  (function () {
+    var params = TikkiesWidget.params;
+    var box = document.getElementById('box');
+    var elWins = document.getElementById('wins');
+    var elSep = document.getElementById('sep');
+    var elMax = document.getElementById('max');
+    var elLabel = document.getElementById('label');
+
+    // ค่าที่บังคับจาก URL (ถ้ามี จะชนะค่าที่ตั้งในแอป)
+    var forceSize = Number(params.get('size')) || null;
+    var forceMaxOff = params.get('max') === '0';
+    var forceLabelOff = params.get('label') === '0';
+    var forceBgOff = params.get('bg') === '0';
+
+    var lastCount = null;
+
+    function hexToRgb(hex) {
+      var m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
+      if (!m) return null;
+      var n = parseInt(m[1], 16);
+      return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+    }
+
+    function render(c) {
+      if (!c) return;
+      // ปิดใช้งาน = ซ่อนทั้ง widget (ไม่ต้องลบแหล่งภาพออกจากโปรแกรมไลฟ์)
+      if (c.enabled === false) { box.style.display = 'none'; return; }
+      box.style.display = '';
+      var count = Number(c.count) || 0;
+      var maxWins = Number(c.maxWins) || 0;
+      var showMax = c.showMax !== false && !forceMaxOff;
+      var showLabel = !!c.showLabel && !forceLabelOff;
+      var negative = count < 0;
+
+      // ---- ตัวอักษร ----
+      var size = forceSize || Number(c.fontSize) || 80;
+      box.style.fontSize = size + 'px';
+      box.style.fontFamily = c.fontFamily ? ('"' + c.fontFamily + '", sans-serif') : '';
+      box.style.setProperty('--weight', c.bold === false ? '500' : '800');
+
+      // ---- เส้นขอบตัวอักษร ----
+      var strokeOn = c.outline !== false;
+      var strokePx = Math.max(0, Math.min(20, Number(c.outlineSize) || 0));
+      box.style.setProperty('--stroke', strokeOn ? strokePx + 'px' : '0');
+      box.style.setProperty('--stroke-color', c.outlineColor || '#000');
+
+      // ---- สี ----
+      elWins.style.color = negative ? (c.colorNeg || '#ef4444') : (c.colorWin || '#5fd75f');
+      elMax.style.color = c.colorLose || '#ef6a6a';
+      elSep.style.color = c.colorLabel || '#fff';
+      elLabel.style.color = c.colorLabel || '#fff';
+
+      // ---- แนวการวาง ----
+      box.classList.toggle('vertical', c.layout === 'vertical');
+
+      // ---- พื้นหลังโอเวอร์เลย์ ----
+      var op = forceBgOff ? 0 : Math.max(0, Math.min(100, Number(c.bgOpacity != null ? c.bgOpacity : 100))) / 100;
+      if (op <= 0) {
+        box.style.background = 'transparent';
+      } else {
+        var a = hexToRgb(c.bgColor) || { r: 0, g: 0, b: 0 };
+        var c1 = 'rgba(' + a.r + ',' + a.g + ',' + a.b + ',' + op + ')';
+        if (c.bgGradient) {
+          var b = hexToRgb(c.bgColor2) || a;
+          var c2 = 'rgba(' + b.r + ',' + b.g + ',' + b.b + ',' + op + ')';
+          box.style.background = 'linear-gradient(135deg,' + c1 + ',' + c2 + ')';
+        } else {
+          box.style.background = c1;
+        }
+      }
+
+      // ---- เนื้อหา ----
+      elWins.textContent = String(count);
+      elMax.textContent = String(maxWins);
+      elSep.hidden = !showMax;
+      elMax.hidden = !showMax;
+      elLabel.hidden = !showLabel;
+      if (showLabel) elLabel.textContent = c.label || '';
+
+      // เด้งเมื่อยอดเปลี่ยน (ไม่เด้งตอนโหลดครั้งแรก)
+      if (lastCount !== null && count !== lastCount) {
+        elWins.classList.remove('bump');
+        void elWins.offsetWidth;
+        elWins.classList.add('bump');
+      }
+      lastCount = count;
+    }
+
+    TikkiesWidget.connect({
+      onEvent: function (event, data) {
+        if (event === 'snapshot') {
+          var s = data && data.settings && data.settings.winCounter;
+          if (s) render(s);
+          return;
+        }
+        if (event === 'winCounter') render(data);
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

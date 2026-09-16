@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- img-src อนุญาต http://localhost ด้วย — รูปที่อัพโหลด (เช่นช่องรางวัล) เสิร์ฟผ่าน overlay server ในเครื่อง
+     connect-src ก็ต้องเปิดให้ localhost เหมือนกัน — Soundpad ดึงไฟล์เสียงด้วย fetch เพื่อ decode ไว้ล่วงหน้า
+     (ปลายทางคือ overlay server ของโปรแกรมเองเท่านั้น ไม่ได้เปิดให้ต่อออกอินเทอร์เน็ต) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: http://localhost:* http://127.0.0.1:*; media-src 'self' https: file: data: http://localhost:* http://127.0.0.1:*; connect-src 'self' http://localhost:* http://127.0.0.1:*; frame-src 'self' http://localhost:* http://127.0.0.1:*;">
+<title>Tikkies Tools — Demo</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app">
+  <!-- แถบด้านข้าง -->
+  <aside id="sidebar">
+    <div class="brand">
+      <img class="brand-logo" src="img/logo.png" alt="Tikkies Tools">
+      <div class="brand-text">
+        <div class="brand-name">Tikkies Tools</div>
+        <div class="brand-sub">TikTok LIVE Toolkit</div>
+      </div>
+    </div>
+
+    <div class="conn-card" id="connCard">
+      <div class="conn-status">
+        <span class="dot" id="connDot"></span>
+        <span id="connText" data-i18n="ยังไม่เชื่อมต่อ">ยังไม่เชื่อมต่อ</span>
+      </div>
+      <div class="conn-meta" id="connMeta"></div>
+    </div>
+
+    <nav id="nav">
+      <button class="nav-item active" data-tab="overview" data-icon="overview" data-i18n="ภาพรวม">ภาพรวม</button>
+      <button class="nav-item" data-tab="actions" data-icon="actions">Actions</button>
+      <button class="nav-item" data-tab="presets" data-icon="sparkles" data-i18n="พรีเซ็ต">พรีเซ็ต</button>
+      <!-- Soundpad = เจ้าของกดเอง ไม่เกี่ยวกับผู้ชม/โอเวอร์เลย์ จึงอยู่กลุ่มเครื่องมือหลัก -->
+      <button class="nav-item" data-tab="soundpad" data-icon="keyboard" data-i18n="แป้นเสียง (Soundpad)">แป้นเสียง (Soundpad)</button>
+      <div class="nav-group" data-i18n="โอเวอร์เลย์สำหรับโปรแกรมไลฟ์">โอเวอร์เลย์สำหรับโปรแกรมไลฟ์</div>
+      <button class="nav-item" data-tab="widgets" data-icon="widgets">Widgets</button>
+      <button class="nav-item" data-tab="tts" data-icon="tts" data-i18n="เสียงอ่าน (TTS)">เสียงอ่าน (TTS)</button>
+      <div class="nav-group" data-i18n="บัญชีและการชำระเงิน">บัญชีและการชำระเงิน</div>
+      <button class="nav-item" data-tab="billing" data-icon="diamond" data-i18n="ซื้อ / ต่ออายุ">ซื้อ / ต่ออายุ</button>
+      <div class="nav-group" data-i18n="ตั้งค่าและข้อมูล">ตั้งค่าและข้อมูล</div>
+      <button class="nav-item" data-tab="history" data-icon="clock" data-i18n="ประวัติไลฟ์">ประวัติไลฟ์</button>
+      <button class="nav-item" data-tab="account" data-icon="follow" data-i18n="บัญชี">บัญชี</button>
+      <button class="nav-item" data-tab="settings" data-icon="settings" data-i18n="ตั้งค่า">ตั้งค่า</button>
+    </nav>
+
+    <div class="side-status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusLog" class="status-log" aria-live="polite" data-i18n="พร้อมใช้งาน">พร้อมใช้งาน</span>
+    </div>
+    <div class="side-status-meta">
+      <span id="serverStatus" data-i18n="เซิร์ฟเวอร์: —">เซิร์ฟเวอร์: —</span>
+      <span id="obsBar">OBS: —</span>
+    </div>
+    <div class="sidebar-foot">
+      <span class="ver" id="versionLabel"></span>
+      <div class="foot-btns">
+        <button class="theme-toggle lang-toggle" id="langToggle" title="เปลี่ยนภาษา" data-i18n-title="เปลี่ยนภาษา">TH</button>
+        <button class="theme-toggle" id="themeToggle" title="สลับธีมสว่าง/มืด" data-i18n-title="สลับธีมสว่าง/มืด" data-icon="moon"></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- เนื้อหาหลัก -->
+  <main id="main">
+    <!-- แถบแจ้งอัปเดต (โผล่เหนือทุกแท็บเมื่อมีเวอร์ชันใหม่) -->
+    <div id="updateBanner" class="update-banner" hidden>
+      <span id="updateBannerText"></span>
+      <button class="btn btn-sm" id="updateInstallBtn" hidden data-i18n="รีสตาร์ทเลย">รีสตาร์ทเลย</button>
+    </div>
+    <!-- แถบเตือนสมาชิกใกล้หมดอายุ (โผล่เหนือทุกแท็บเมื่อเหลือ ≤ 7 วัน) -->
+    <div id="subBanner" class="update-banner is-warn" hidden></div>
+    <!-- ภาพรวม -->
+    <section class="tab" data-tab="overview">
+      <h1 data-i18n="ภาพรวม">ภาพรวม</h1>
+
+      <div class="card connect-box">
+        <div class="connect-row">
+          <div class="input-group">
+            <span class="at">@</span>
+            <input id="usernameInput" type="text" placeholder="ชื่อผู้ใช้ TikTok ที่กำลังไลฟ์" data-i18n-ph="ชื่อผู้ใช้ TikTok ที่กำลังไลฟ์" autocomplete="off" spellcheck="false">
+          </div>
+          <button class="btn btn-primary" id="connectBtn" data-i18n="เชื่อมต่อ">เชื่อมต่อ</button>
+        </div>
+        <label class="check-inline"><input type="checkbox" id="autoConnectChk"> <span data-i18n="เชื่อมต่ออัตโนมัติ">เชื่อมต่ออัตโนมัติ</span></label>
+        <div class="connect-error" id="connectError"></div>
+      </div>
+
+      <!-- แถบสถิติสดแบบ console เดียว — ผู้ชมเด่นสุด แบ่งช่องด้วยเส้น ไม่ใช่การ์ดแยก -->
+      <div class="stat-grid" id="statGrid">
+        <div class="stat-card lead">
+          <div class="stat-top" data-icon="viewers"><span data-i18n="ผู้ชมตอนนี้">ผู้ชมตอนนี้</span></div>
+          <div class="stat-val" data-stat="viewerCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top" data-icon="heart"><span data-i18n="หัวใจ (รวม)">หัวใจ (รวม)</span></div>
+          <div class="stat-val" data-stat="totalLikes">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top" data-icon="diamond"><span data-i18n="เพชรรวม">เพชรรวม</span></div>
+          <div class="stat-val" data-stat="totalDiamonds">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top" data-icon="follow"><span data-i18n="ผู้ติดตามใหม่">ผู้ติดตามใหม่</span></div>
+          <div class="stat-val" data-stat="follows">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top" data-icon="chat"><span data-i18n="ข้อความแชท">ข้อความแชท</span></div>
+          <div class="stat-val" data-stat="totalChats">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top" data-icon="share"><span data-i18n="แชร์">แชร์</span></div>
+          <div class="stat-val" data-stat="shares">0</div>
+        </div>
+      </div>
+
+      <div class="overview-main">
+        <div class="card ov-feed-card">
+          <div class="ov-feed-head">
+            <div class="card-title" data-icon="events" data-i18n="กิจกรรมสด">กิจกรรมสด</div>
+            <div class="feed-tools">
+              <div class="feed-filters" id="feedFilters"></div>
+              <button class="btn btn-ghost btn-sm" id="clearFeed" title="ล้างรายการที่แสดงอยู่" data-i18n-title="ล้างรายการที่แสดงอยู่" data-i18n="ล้าง">ล้าง</button>
+            </div>
+          </div>
+          <div id="overviewFeed" class="ov-feed"></div>
+          <div class="feed-empty muted small" id="ovFeedHint" data-i18n="ยังไม่มีเหตุการณ์ — เชื่อมต่อไลฟ์ หรือกดปุ่มทดสอบด้านขวา">ยังไม่มีเหตุการณ์ — เชื่อมต่อไลฟ์ หรือกดปุ่มทดสอบด้านขวา</div>
+        </div>
+        <div class="ov-side">
+          <!-- แผงคุมระหว่างออกอากาศ — รวมปุ่มที่ต้องกดจริงตอนไลฟ์ไว้ที่เดียว -->
+          <div class="card onair" id="onAirCard" hidden></div>
+          <div class="card">
+            <div class="card-title" data-icon="trophy" data-i18n="ท็อปผู้สนับสนุน">ท็อปผู้สนับสนุน</div>
+            <div id="miniLeaderboard" class="mini-lb"><div class="muted small" data-i18n="ยังไม่มีข้อมูล">ยังไม่มีข้อมูล</div></div>
+          </div>
+          <div class="card sandbox">
+            <div class="card-title" data-icon="flask"><span data-i18n="ทดสอบ">ทดสอบ</span> <span class="sandbox-tag" data-i18n="จำลอง">จำลอง</span></div>
+            <div class="test-btns">
+              <button class="btn btn-ghost btn-sm" data-sim="chat" data-icon="chat" data-i18n="แชท">แชท</button>
+              <button class="btn btn-ghost btn-sm" data-sim="gift" data-icon="gift" data-i18n="ของขวัญ">ของขวัญ</button>
+              <button class="btn btn-ghost btn-sm" data-sim="like" data-icon="heart" data-i18n="ไลค์">ไลค์</button>
+              <button class="btn btn-ghost btn-sm" data-sim="follow" data-icon="follow" data-i18n="ติดตาม">ติดตาม</button>
+              <button class="btn btn-ghost btn-sm" data-sim="share" data-icon="share" data-i18n="แชร์">แชร์</button>
+              <button class="btn btn-ghost btn-sm" data-sim="member" data-icon="member" data-i18n="เข้าห้อง">เข้าห้อง</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Actions -->
+    <section class="tab" data-tab="actions" hidden>
+      <div class="row-between">
+        <h1>Actions</h1>
+        <div class="action-toolbar">
+          <select id="profileSelect" class="profile-select" title="ชุด Actions — สลับตามเกม/สถานการณ์" data-i18n-title="ชุด Actions — สลับตามเกม/สถานการณ์"></select>
+          <button class="btn btn-sm" id="profileManageBtn" title="จัดการชุด Actions" data-i18n-title="จัดการชุด Actions" data-i18n="จัดการชุด">จัดการชุด</button>
+          <button class="btn btn-sm" id="importActionsBtn" data-icon="download" data-i18n="นำเข้า">นำเข้า</button>
+          <button class="btn btn-sm" id="exportActionsBtn" data-icon="upload" data-i18n="ส่งออก">ส่งออก</button>
+          <button class="btn btn-primary" id="newActionBtn" data-icon="plus" data-i18n="สร้าง Action">สร้าง Action</button>
+        </div>
+      </div>
+      <div class="row-between" style="margin-bottom:10px">
+        <p class="muted" style="margin:0" data-i18n="เมื่อเกิดเหตุการณ์ → ให้ทำอะไร">เมื่อเกิดเหตุการณ์ → ให้ทำอะไร</p>
+        <div class="actions-right">
+          <button class="btn btn-sm" id="bulkToggleBtn"></button>
+          <div class="view-switch" title="เลือกมุมมองที่ถนัด — รายการ หรือโหนดแบบลากต่อ" data-i18n-title="เลือกมุมมองที่ถนัด — รายการ หรือโหนดแบบลากต่อ">
+            <button class="vs-btn active" id="viewListBtn" data-icon="overview" data-i18n="รายการ">รายการ</button>
+            <button class="vs-btn" id="viewNodeBtn" data-icon="share" data-i18n="โหนด (ลากต่อ)">โหนด (ลากต่อ)</button>
+          </div>
+        </div>
+      </div>
+      <div class="actions-toolbar">
+        <div class="act-search">
+          <span class="act-search-ico" data-icon="search"></span>
+          <input type="search" id="actionsSearch" autocomplete="off" spellcheck="false"
+                 placeholder="ค้นหา Action…" data-i18n-ph="ค้นหา Action…"
+                 aria-label="ค้นหา Action" data-i18n-aria="ค้นหา Action">
+          <button type="button" class="act-search-clear" id="actionsSearchClear" hidden
+                  data-icon="x" title="ล้างคำค้น" data-i18n-title="ล้างคำค้น"
+                  aria-label="ล้างคำค้น" data-i18n-aria="ล้างคำค้น"></button>
+        </div>
+        <div class="act-filter-wrap">
+          <button type="button" class="btn btn-sm act-filter-btn" id="actionsFilterBtn"
+                  data-icon="filter" aria-expanded="false" data-i18n="ตัวกรอง">ตัวกรอง</button>
+          <div class="act-filter-pop" id="actionsFilterPop" hidden></div>
+        </div>
+        <div class="act-status" id="actionsStatus" role="tablist"
+             aria-label="กรองตามสถานะ" data-i18n-aria="กรองตามสถานะ"></div>
+      </div>
+      <div class="templates-wrap" id="templatesWrap">
+        <div class="templates-label" data-i18n="เทมเพลตยอดฮิต — กดเพื่อเพิ่มแล้วปรับต่อได้">เทมเพลตยอดฮิต — กดเพื่อเพิ่มแล้วปรับต่อได้</div>
+        <div class="templates-bar" id="actionTemplates"></div>
+      </div>
+      <div id="actionsList" class="actions-list"></div>
+      <div class="actions-add-row" id="actionsAddRow" hidden>
+        <button type="button" class="btn add-action-btn" id="addActionBottomBtn"
+                data-icon="plus" data-i18n="เพิ่ม Action">เพิ่ม Action</button>
+      </div>
+      <div id="actionsNodes" class="actions-nodes" hidden></div>
+    </section>
+
+    <!-- พรีเซ็ต: ชุดกฎสำเร็จรูปของทางร้าน กดนำเข้าแล้วไปโผล่ในหน้า Actions -->
+    <section class="tab" data-tab="presets" hidden>
+      <div class="row-between">
+        <h1 data-i18n="พรีเซ็ตสำเร็จรูป">พรีเซ็ตสำเร็จรูป</h1>
+        <button class="btn btn-sm" id="presetsRefreshBtn" data-icon="refresh" data-i18n="โหลดใหม่">โหลดใหม่</button>
+      </div>
+      <p class="muted" style="margin-bottom:14px" data-i18n="ชุดกฎสำเร็จรูปตามเกม — นำเข้าแล้วแก้ต่อได้ในหน้า Actions">ชุดกฎสำเร็จรูปตามเกม — นำเข้าแล้วแก้ต่อได้ในหน้า Actions</p>
+      <div id="presetsGrid" class="preset-grid"></div>
+    </section>
+
+    <!-- ซื้อ/ต่ออายุ: หน้าเว็บของเราเองฝังอยู่ในกรอบนี้ (ไม่มีคีย์ชำระเงินอยู่ในโปรแกรม) -->
+    <section class="tab" data-tab="billing" hidden>
+      <div class="row-between">
+        <h1 data-i18n="ซื้อ / ต่ออายุสมาชิก">ซื้อ / ต่ออายุสมาชิก</h1>
+        <div class="action-toolbar">
+          <button class="btn btn-sm" id="billingReloadBtn" data-icon="refresh" data-i18n="โหลดใหม่">โหลดใหม่</button>
+        </div>
+      </div>
+      <p class="muted" style="margin-bottom:14px" data-i18n="จ่ายครั้งเดียว ไม่มีตัดเงินอัตโนมัติ · ซื้อซ้ำเมื่อไรก็ได้ วันที่เหลือทบต่อให้เอง">จ่ายครั้งเดียว ไม่มีตัดเงินอัตโนมัติ · ซื้อซ้ำเมื่อไรก็ได้ วันที่เหลือทบต่อให้เอง</p>
+
+      <!-- หน้าเลือกแพ็กเกจ วาดด้วยหน้าตาของโปรแกรมเอง -->
+      <div id="billingPanel">
+        <div class="lic-lite" id="billingStatus"></div>
+        <div class="plan-grid" id="planGrid"></div>
+        <p class="muted small" id="billingNote" style="margin-top:14px" data-i18n="จ่ายด้วย PromptPay หรือบัตรเครดิต/เดบิต ผ่าน Stripe · โปรแกรมไม่เก็บข้อมูลบัตรของคุณ">
+          จ่ายด้วย PromptPay หรือบัตรเครดิต/เดบิต ผ่าน Stripe · โปรแกรมไม่เก็บข้อมูลบัตรของคุณ
+        </p>
+      </div>
+
+    </section>
+
+    <!-- Widgets: ที่เดียวจบ — เลือกการ์ด แล้วตั้งค่า/ดูตัวอย่าง/คัดลอก URL ในหน้าเดียว -->
+    <section class="tab" data-tab="widgets" hidden>
+      <div id="widgetsHome">
+        <h1 data-i18n="Widgets สำหรับโปรแกรมไลฟ์">Widgets สำหรับโปรแกรมไลฟ์</h1>
+        <p class="muted" data-i18n="ตั้งค่า ดูตัวอย่างสด แล้วคัดลอก URL ไปวางในโปรแกรมไลฟ์">ตั้งค่า ดูตัวอย่างสด แล้วคัดลอก URL ไปวางในโปรแกรมไลฟ์</p>
+        <div class="card info-banner" data-i18n-html='<strong>วิธีเพิ่ม:</strong> เพิ่มเป็น<b>แหล่งภาพชนิดเว็บ</b>ในโปรแกรมไลฟ์ที่ใช้อยู่ แล้ววาง URL ลงไป → กำหนดขนาดตามที่แนะนำ → พื้นหลังโปร่งใสให้อัตโนมัติ (บางโปรแกรมเรียกช่องนี้ว่า <b>Browser</b> บางโปรแกรมเรียก <b>Link</b>)'>
+          <strong>วิธีเพิ่ม:</strong> เพิ่มเป็น<b>แหล่งภาพชนิดเว็บ</b>ในโปรแกรมไลฟ์ที่ใช้อยู่ แล้ววาง URL ลงไป → กำหนดขนาดตามที่แนะนำ → พื้นหลังโปร่งใสให้อัตโนมัติ (บางโปรแกรมเรียกช่องนี้ว่า <b>Browser</b> บางโปรแกรมเรียก <b>Link</b>)
+        </div>
+        <div id="widgetsList" class="widgets-list"></div>
+      </div>
+
+      <div id="widgetDetail" hidden>
+        <div class="wd-head">
+          <button class="btn btn-ghost btn-sm" id="wdBack" data-icon="chevronRight" data-i18n="กลับไปรายการ">กลับไปรายการ</button>
+          <div class="wd-title"><span id="wdName"></span><span class="wd-size" id="wdSize"></span></div>
+        </div>
+        <div class="wd-body">
+          <div class="wd-form" id="wdForm"></div>
+          <aside class="wd-side">
+            <div class="card wd-preview-card">
+              <div class="card-title" data-icon="widgets" data-i18n="ตัวอย่างสด">ตัวอย่างสด</div>
+              <div class="wd-preview"><iframe id="wdPreview" scrolling="no"></iframe></div>
+            </div>
+            <div class="card">
+              <div class="card-title" data-icon="link" data-i18n="URL สำหรับโปรแกรมไลฟ์">URL สำหรับโปรแกรมไลฟ์</div>
+              <input type="text" id="wdUrl" readonly>
+              <div class="wd-url-btns">
+                <button class="btn btn-primary btn-sm" id="wdCopy" data-icon="copy" data-i18n="คัดลอก URL">คัดลอก URL</button>
+                <button class="btn btn-ghost btn-sm" id="wdOpen" data-icon="external" data-i18n="เปิดในเบราว์เซอร์">เปิดในเบราว์เซอร์</button>
+              </div>
+              <p class="muted small" id="wdSizeHint"></p>
+            </div>
+          </aside>
+        </div>
+        <div id="wcfgHost">
+      <div class="wcfg" data-cfg="goal" hidden>
+        <div class="wcfg-title" data-i18n="ตั้งค่าเป้าหมาย">ตั้งค่าเป้าหมาย</div>
+<div class="card">
+          <div class="card-title" data-icon="goals" data-i18n="เป้าหมาย (Goals)">เป้าหมาย (Goals)</div>
+          <div id="goalsForm"></div>
+          <div class="goal-preview" id="goalPreview"></div>
+        </div>
+      </div>
+      <div class="wcfg" data-cfg="timer" hidden>
+        <div class="wcfg-title" data-i18n="ตั้งค่า Subathon Timer">ตั้งค่า Subathon Timer</div>
+<div class="card">
+          <div class="card-title" data-icon="timer">Subathon Timer</div>
+          <label class="switch-row"><span data-i18n="เปิดใช้งาน Timer">เปิดใช้งาน Timer</span><input type="checkbox" data-timer="enabled"></label>
+          <div class="field"><label data-i18n="ชื่อ Timer">ชื่อ Timer</label><input type="text" data-timer="label"></div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="เวลาเริ่มต้น (นาที)">เวลาเริ่มต้น (นาที)</label><input type="number" min="0" data-timer="initialMinutes"></div>
+            <div class="field"><label data-i18n="+วินาที ต่อ 1 เพชร">+วินาที ต่อ 1 เพชร</label><input type="number" min="0" step="0.1" data-timer="secondsPerDiamond"></div>
+            <div class="field"><label data-i18n="+วินาที ต่อ 1 ติดตาม">+วินาที ต่อ 1 ติดตาม</label><input type="number" min="0" data-timer="secondsPerFollow"></div>
+            <div class="field"><label data-i18n="+วินาที ต่อ 1 แชร์">+วินาที ต่อ 1 แชร์</label><input type="number" min="0" data-timer="secondsPerShare"></div>
+          </div>
+          <div class="timer-display" id="timerDisplay">00:00</div>
+          <div class="timer-controls">
+            <button class="btn btn-ghost" data-timer-cmd="start" data-icon="play" data-i18n="เริ่ม">เริ่ม</button>
+            <button class="btn btn-ghost" data-timer-cmd="pause" data-icon="pause" data-i18n="พัก">พัก</button>
+            <button class="btn btn-ghost" data-timer-cmd="reset" data-icon="reset" data-i18n="รีเซ็ต">รีเซ็ต</button>
+            <button class="btn btn-ghost" data-timer-cmd="add" data-add="60" data-icon="plus" data-i18n="1 นาที">1 นาที</button>
+          </div>
+        </div>
+      </div>
+      <div class="wcfg" data-cfg="wheel" hidden>
+        <div class="wcfg-title" data-i18n="ตั้งค่าสุ่มรางวัล">ตั้งค่าสุ่มรางวัล</div>
+
+      <h1 data-i18n="สุ่มรางวัล (Roulette)">สุ่มรางวัล (Roulette)</h1>
+      <div class="card info-banner" data-i18n-html='<b>คนละตัวกับ Random Wheel (วงล้อกลม)</b> — รายการรางวัลและ Action แยกกันคนละชุด · ตั้งรายการรางวัลด้านล่าง → เพิ่ม widget "Roulette สุ่มรางวัล" ในโปรแกรมไลฟ์ (ดูแท็บ Widgets) → สั่งสุ่มได้ 3 ทาง: สร้าง <b>Action</b> ที่มีการกระทำ "สุ่มรางวัล" (เช่น เมื่อได้ของขวัญที่กำหนด), ตั้ง<b>คีย์ลัด</b>, หรือกดปุ่มสุ่มทดสอบในหน้านี้'>
+        <b>คนละตัวกับ Random Wheel (วงล้อกลม)</b> — รายการรางวัลและ Action แยกกันคนละชุด ·
+        ตั้งรายการรางวัลด้านล่าง → เพิ่ม widget "Roulette สุ่มรางวัล" ในโปรแกรมไลฟ์ (ดูแท็บ Widgets) →
+        สั่งสุ่มได้ 3 ทาง: สร้าง <b>Action</b> ที่มีการกระทำ "สุ่มรางวัล" (เช่น เมื่อได้ของขวัญที่กำหนด),
+        ตั้ง<b>คีย์ลัด</b>, หรือกดปุ่มสุ่มทดสอบในหน้านี้
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title" data-icon="sparkles" data-i18n="รายการรางวัล">รายการรางวัล</div>
+          <div class="hint" style="margin-bottom:8px" data-i18n="เลือกสีของแต่ละช่องได้ · น้ำหนัก = โอกาสออก (ยิ่งมากยิ่งออกง่าย) เช่น 3 ออกง่ายกว่า 1 สามเท่า">เลือกสีของแต่ละช่องได้ · น้ำหนัก = โอกาสออก (ยิ่งมากยิ่งออกง่าย) เช่น 3 ออกง่ายกว่า 1 สามเท่า</div>
+          <div id="wheelSegments"></div>
+          <button class="btn btn-ghost btn-sm" id="addSegmentBtn" data-icon="plus" data-i18n="เพิ่มรางวัล">เพิ่มรางวัล</button>
+        </div>
+        <div class="card">
+          <div class="card-title" data-icon="settings" data-i18n="ตั้งค่า">ตั้งค่า</div>
+          <div class="field"><label data-i18n="หัวข้อ (โชว์บน widget)">หัวข้อ (โชว์บน widget)</label><input type="text" data-wheel="title"></div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="เวลาสุ่ม (วินาที)">เวลาสุ่ม (วินาที)</label><input type="number" min="2" max="30" data-wheel="durationSec"></div>
+            <div class="field"><label data-i18n="โชว์ผลค้างไว้ (วินาที)">โชว์ผลค้างไว้ (วินาที)</label><input type="number" min="2" max="60" data-wheel="resultHoldSec"></div>
+          </div>
+          <label class="switch-row"><span data-i18n="ประกาศผลด้วยเสียงอ่าน (TTS)">ประกาศผลด้วยเสียงอ่าน (TTS)</span><input type="checkbox" data-wheel="announceTts"></label>
+          <div style="margin-top:12px">
+            <button class="btn btn-primary" id="wheelSpinBtn" data-icon="play" data-i18n="สุ่มทดสอบ">สุ่มทดสอบ</button>
+            <span class="hint" style="display:inline;margin-left:8px" data-i18n="ผลจะแสดงบน widget ที่เปิดอยู่">ผลจะแสดงบน widget ที่เปิดอยู่</span>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="wcfg" data-cfg="randomWheel" hidden>
+        <div class="wcfg-title" data-i18n="ตั้งค่า Random Wheel">ตั้งค่า Random Wheel</div>
+
+      <h1 data-i18n="Random Wheel (วงล้อกลม)">Random Wheel (วงล้อกลม)</h1>
+      <div class="card info-banner" data-i18n-html='<b>คนละตัวกับ Roulette</b> — รายการรางวัลและ Action แยกกันคนละชุด ตั้งพร้อมกันได้ทั้งสองอัน · ตั้งรางวัลด้านล่าง → เพิ่ม widget "Random Wheel (วงล้อกลม)" ในโปรแกรมไลฟ์ → สั่งหมุนได้จาก <b>Action</b> ที่มีการกระทำ "หมุน Random Wheel" หรือปุ่มทดสอบในหน้านี้'>
+        <b>คนละตัวกับ Roulette</b> — รายการรางวัลและ Action แยกกันคนละชุด ตั้งพร้อมกันได้ทั้งสองอัน ·
+        ตั้งรางวัลด้านล่าง → เพิ่ม widget "Random Wheel (วงล้อกลม)" ในโปรแกรมไลฟ์ →
+        สั่งหมุนได้จาก <b>Action</b> ที่มีการกระทำ "หมุน Random Wheel" หรือปุ่มทดสอบในหน้านี้
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title" data-icon="sparkles" data-i18n="รายการรางวัล">รายการรางวัล</div>
+          <div class="hint" style="margin-bottom:8px" data-i18n-html='น้ำหนัก = โอกาสออก (ยิ่งมากยิ่งออกง่าย) เช่น 3 ออกง่ายกว่า 1 สามเท่า · สีของแต่ละช่องมาจากชุดสีของ widget เอง (ตั้งได้ที่พารามิเตอร์ <code>?palette=</code> หรือ <code>?colors=</code> ในแท็บ Widgets)'>น้ำหนัก = โอกาสออก (ยิ่งมากยิ่งออกง่าย) เช่น 3 ออกง่ายกว่า 1 สามเท่า · สีของแต่ละช่องมาจากชุดสีของ widget เอง (ตั้งได้ที่พารามิเตอร์ <code>?palette=</code> หรือ <code>?colors=</code> ในแท็บ Widgets)</div>
+          <div id="rwSegments"></div>
+          <button class="btn btn-ghost btn-sm" id="addRwSegmentBtn" data-icon="plus" data-i18n="เพิ่มรางวัล">เพิ่มรางวัล</button>
+        </div>
+        <div class="card">
+          <div class="card-title" data-icon="settings" data-i18n="ตั้งค่า">ตั้งค่า</div>
+          <div class="field"><label data-i18n="หัวข้อ (โชว์บน widget)">หัวข้อ (โชว์บน widget)</label><input type="text" data-rwheel="title"></div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="เวลาหมุน (วินาที)">เวลาหมุน (วินาที)</label><input type="number" min="2" max="30" data-rwheel="durationSec"></div>
+            <div class="field"><label data-i18n="โชว์ผลค้างไว้ (วินาที)">โชว์ผลค้างไว้ (วินาที)</label><input type="number" min="2" max="60" data-rwheel="resultHoldSec"></div>
+          </div>
+          <label class="switch-row"><span data-i18n="ประกาศผลด้วยเสียงอ่าน (TTS)">ประกาศผลด้วยเสียงอ่าน (TTS)</span><input type="checkbox" data-rwheel="announceTts"></label>
+          <div style="margin-top:12px">
+            <button class="btn btn-primary" id="rwSpinBtn" data-icon="play" data-i18n="หมุนทดสอบ">หมุนทดสอบ</button>
+            <span class="hint" style="display:inline;margin-left:8px" data-i18n="ผลจะแสดงบน widget ที่เปิดอยู่">ผลจะแสดงบน widget ที่เปิดอยู่</span>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="wcfg" data-cfg="carousel" hidden>
+        <div class="wcfg-title" data-i18n="ตั้งค่าตัวเลื่อน">ตั้งค่าตัวเลื่อน</div>
+
+      <h1 data-i18n="ตัวเลื่อน (Interaction Slider)">ตัวเลื่อน (Interaction Slider)</h1>
+      <div class="card info-banner" data-i18n='แถบเลื่อนโชว์ของขวัญ + ข้อความ วนไปเรื่อยๆ — ตั้งรายการด้านล่าง แล้วเพิ่ม widget "ตัวเลื่อน" ในโปรแกรมไลฟ์ (ดูแท็บ Widgets)'>
+        แถบเลื่อนโชว์ของขวัญ + ข้อความ วนไปเรื่อยๆ — ตั้งรายการด้านล่าง แล้วเพิ่ม widget "ตัวเลื่อน" ในโปรแกรมไลฟ์ (ดูแท็บ Widgets)
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title" data-icon="megaphone" data-i18n="รายการที่จะเลื่อน">รายการที่จะเลื่อน</div>
+          <div class="hint" style="margin-bottom:8px" data-i18n="แต่ละช่อง = รูปของขวัญ (ไม่บังคับ) + ข้อความ + สีข้อความ">แต่ละช่อง = รูปของขวัญ (ไม่บังคับ) + ข้อความ + สีข้อความ</div>
+          <div id="carouselItems"></div>
+          <button class="btn btn-ghost btn-sm" id="addCarouselItemBtn" data-icon="plus" data-i18n="เพิ่มช่อง">เพิ่มช่อง</button>
+        </div>
+        <div class="card">
+          <div class="card-title" data-icon="settings" data-i18n="ตั้งค่า">ตั้งค่า</div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="ความเร็ว (มาก=เร็ว)">ความเร็ว (มาก=เร็ว)</label><input type="number" min="10" max="800" step="10" data-carousel="speedSec"></div>
+            <div class="field"><label data-i18n="ขนาดการ์ด (px)">ขนาดการ์ด (px)</label><input type="number" min="50" max="300" data-carousel="cardSize"></div>
+          </div>
+          <p class="muted small" data-i18n="น้อย = เลื่อนเร็ว · การเปลี่ยนแปลงอัปเดตบน widget ที่เปิดอยู่ทันที">น้อย = เลื่อนเร็ว · การเปลี่ยนแปลงอัปเดตบน widget ที่เปิดอยู่ทันที</p>
+        </div>
+      </div>
+      </div>
+      <div class="wcfg" data-cfg="wincount" hidden>
+        <div class="wcfg-title" data-i18n="ตั้งค่าตัวนับชัยชนะ">ตั้งค่าตัวนับชัยชนะ</div>
+
+      <h1 data-i18n="ตัวนับชัยชนะ (Win Counter)">ตัวนับชัยชนะ (Win Counter)</h1>
+      <p class="muted" data-i18n='นับแพ้/ชนะด้วยคีย์ลัดขณะเล่นเกม — แสดงผ่าน widget "ตัวนับชัยชนะ"'>นับแพ้/ชนะด้วยคีย์ลัดขณะเล่นเกม — แสดงผ่าน widget "ตัวนับชัยชนะ"</p>
+
+      <!-- แผงควบคุมสด — สิ่งที่ใช้บ่อยที่สุดอยู่บนสุด -->
+      <div class="card wc-live">
+        <label class="switch-row wc-enable"><span data-i18n="เปิดใช้งานตัวนับ">เปิดใช้งานตัวนับ</span><input type="checkbox" data-wc="enabled"></label>
+        <div class="wc-now">
+          <span class="wc-now-label" data-i18n="ยอดปัจจุบัน">ยอดปัจจุบัน</span>
+          <span class="wc-now-val" id="wcCurrent">0</span>
+        </div>
+        <div class="wc-live-btns">
+          <button class="btn btn-primary" id="wcWinBtn" data-icon="plus" data-i18n="ชนะ +1">ชนะ +1</button>
+          <button class="btn" id="wcUndoBtn" data-i18n="ย้อน −1">ย้อน −1</button>
+          <button class="btn btn-ghost" id="wcResetBtn" data-icon="reset" data-i18n="รีเซ็ต">รีเซ็ต</button>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title" data-icon="trophy" data-i18n="ตั้งค่าตัวนับ">ตั้งค่าตัวนับ</div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="เป้า / จำนวนสูงสุด">เป้า / จำนวนสูงสุด</label><input type="number" min="0" max="999999" data-wc="maxWins"></div>
+            <div class="field"><label data-i18n="ข้อความกำกับ">ข้อความกำกับ</label><input type="text" data-wc="label" placeholder="WIN"></div>
+          </div>
+          <label class="switch-row"><span data-i18n="แสดงเป้า (เช่น 7 / 13)">แสดงเป้า (เช่น 7 / 13)</span><input type="checkbox" data-wc="showMax"></label>
+          <label class="switch-row"><span data-i18n="แสดงข้อความกำกับ">แสดงข้อความกำกับ</span><input type="checkbox" data-wc="showLabel"></label>
+          <label class="switch-row"><span data-i18n="ให้ยอดติดลบได้">ให้ยอดติดลบได้</span><input type="checkbox" data-wc="allowNegative"></label>
+        </div>
+
+        <div class="card">
+          <div class="card-title" data-icon="edit" data-i18n="ตัวอักษร">ตัวอักษร</div>
+          <div class="field">
+            <label data-i18n="ฟอนต์">ฟอนต์</label>
+            <select data-wc="fontFamily">
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Impact">Impact</option>
+              <option value="Arial Black">Arial Black</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Tahoma">Tahoma</option>
+              <option value="Prompt" data-i18n="Prompt (ไทย)">Prompt (ไทย)</option>
+              <option value="Sarabun" data-i18n="Sarabun (ไทย)">Sarabun (ไทย)</option>
+            </select>
+          </div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="ขนาด (px)">ขนาด (px)</label><input type="number" min="10" max="400" data-wc="fontSize"></div>
+            <div class="field" style="align-self:end"><label class="check-inline"><input type="checkbox" data-wc="bold"> <span data-i18n="ตัวหนา">ตัวหนา</span></label></div>
+          </div>
+          <div class="card-title" style="margin-top:12px" data-icon="sparkles" data-i18n="เส้นขอบตัวอักษร">เส้นขอบตัวอักษร</div>
+          <label class="switch-row"><span data-i18n="เปิดเส้นขอบ">เปิดเส้นขอบ</span><input type="checkbox" data-wc="outline"></label>
+          <div class="grid2">
+            <div class="field"><label data-i18n="สีขอบ">สีขอบ</label><input type="color" data-wc="outlineColor"></div>
+            <div class="field"><label><span data-i18n="ความหนา">ความหนา</span> <b data-wc-val="outlineSize">8</b> px</label><input type="range" min="0" max="20" step="1" data-wc="outlineSize"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title" data-icon="sparkles" data-i18n="สี">สี</div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="ยอดชนะ">ยอดชนะ</label><input type="color" data-wc="colorWin"></div>
+            <div class="field"><label data-i18n="เป้า (หลัง /)">เป้า (หลัง /)</label><input type="color" data-wc="colorLose"></div>
+            <div class="field"><label data-i18n="ข้อความ / เครื่องหมาย">ข้อความ / เครื่องหมาย</label><input type="color" data-wc="colorLabel"></div>
+            <div class="field"><label data-i18n="เมื่อติดลบ">เมื่อติดลบ</label><input type="color" data-wc="colorNeg"></div>
+          </div>
+          <div class="field" style="margin-top:6px">
+            <label data-i18n="การจัดวาง">การจัดวาง</label>
+            <div class="view-switch">
+              <button class="vs-btn" data-wc-layout="horizontal" data-i18n="แนวนอน">แนวนอน</button>
+              <button class="vs-btn" data-wc-layout="vertical" data-i18n="แนวตั้ง">แนวตั้ง</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" data-icon="widgets" data-i18n="พื้นหลังโอเวอร์เลย์">พื้นหลังโอเวอร์เลย์</div>
+          <div class="slider-row">
+            <label><span data-i18n="ความทึบ">ความทึบ</span> <b data-wc-val="bgOpacity">100</b>%</label>
+            <input type="range" min="0" max="100" step="5" data-wc="bgOpacity">
+          </div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="สีพื้นหลัง">สีพื้นหลัง</label><input type="color" data-wc="bgColor"></div>
+            <div class="field"><label data-i18n="สีที่สอง (ตอนไล่สี)">สีที่สอง (ตอนไล่สี)</label><input type="color" data-wc="bgColor2"></div>
+          </div>
+          <label class="switch-row"><span data-i18n="ไล่สีพื้นหลัง">ไล่สีพื้นหลัง</span><input type="checkbox" data-wc="bgGradient"></label>
+          <p class="muted small" data-i18n="ตั้งความทึบเป็น 0 = พื้นหลังโปร่งใสสนิท (เห็นแต่ตัวเลข)">ตั้งความทึบเป็น 0 = พื้นหลังโปร่งใสสนิท (เห็นแต่ตัวเลข)</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" data-icon="keyboard" data-i18n="คีย์ลัด (ทำงานแม้อยู่ในเกม)">คีย์ลัด (ทำงานแม้อยู่ในเกม)</div>
+        <p class="muted small" style="margin-bottom:10px" data-i18n="คลิกช่องแล้วกดปุ่มที่ต้องการ — แนะนำปุ่มที่เกมไม่ได้ใช้ เช่น ปุ่มตัวเลขแป้นขวา (Numpad)">คลิกช่องแล้วกดปุ่มที่ต้องการ — แนะนำปุ่มที่เกมไม่ได้ใช้ เช่น ปุ่มตัวเลขแป้นขวา (Numpad)</p>
+        <div id="wcKeys" class="wc-keys"></div>
+      </div>
+      </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TTS -->
+    <section class="tab" data-tab="tts" hidden>
+      <h1 data-i18n="เสียงอ่าน (TTS)">เสียงอ่าน (TTS)</h1>
+      <p class="muted" data-i18n="อ่านแชทและของขวัญด้วยเสียงจากเว็บ — เหมือนกันทุกเครื่อง">อ่านแชทและของขวัญด้วยเสียงจากเว็บ — เหมือนกันทุกเครื่อง</p>
+      <div class="two-col">
+      <div class="card">
+        <div class="card-title" data-icon="tts" data-i18n="สิ่งที่จะอ่าน">สิ่งที่จะอ่าน</div>
+        <div class="switch-grid">
+          <label class="switch-row"><span data-i18n="เปิดใช้งานเสียงอ่าน">เปิดใช้งานเสียงอ่าน</span><input type="checkbox" data-tts="enabled"></label>
+          <label class="switch-row"><span data-i18n="อ่านข้อความแชท">อ่านข้อความแชท</span><input type="checkbox" data-tts="readChat"></label>
+          <label class="switch-row"><span data-i18n="อ่านของขวัญ">อ่านของขวัญ</span><input type="checkbox" data-tts="readGifts"></label>
+          <label class="switch-row"><span data-i18n="อ่านผู้ติดตามใหม่">อ่านผู้ติดตามใหม่</span><input type="checkbox" data-tts="readFollows"></label>
+        </div>
+        <div class="field">
+          <label><span data-i18n="เสียงพูด">เสียงพูด</span> <span class="muted small" data-i18n="— เสียงจากเว็บ เหมือนกันทุกเครื่อง รองรับไทย">— เสียงจากเว็บ เหมือนกันทุกเครื่อง รองรับไทย</span></label>
+          <select data-tts="voice">
+            <option value="female" data-i18n="เสียงผู้หญิง (Female)">เสียงผู้หญิง (Female)</option>
+            <option value="male" data-i18n="เสียงผู้ชาย (Male)">เสียงผู้ชาย (Male)</option>
+          </select>
+          <div class="hint" data-i18n="ใช้อินเทอร์เน็ตในการสร้างเสียง (ไม่ต้องติดตั้งเสียงในเครื่อง)">ใช้อินเทอร์เน็ตในการสร้างเสียง (ไม่ต้องติดตั้งเสียงในเครื่อง)</div>
+        </div>
+        <div class="slider-row">
+          <label><span data-i18n="ความเร็ว">ความเร็ว</span> <b data-slider-val="rate">1.0</b></label>
+          <input type="range" min="0.5" max="2" step="0.1" data-tts="rate">
+        </div>
+        <div class="slider-row">
+          <label><span data-i18n="ความดัง">ความดัง</span> <b data-slider-val="volume">1.0</b></label>
+          <input type="range" min="0" max="1" step="0.05" data-tts="volume">
+        </div>
+        <div class="field">
+          <label data-i18n="ใครให้อ่านแชทได้บ้าง">ใครให้อ่านแชทได้บ้าง</label>
+          <div class="allow-list" id="ttsAllowList">
+            <label class="check-inline"><input type="checkbox" data-tts-allow="all"> <span data-i18n="ทุกคน">ทุกคน</span></label>
+            <label class="check-inline"><input type="checkbox" data-tts-allow="followers"> <span data-i18n="ผู้ติดตาม">ผู้ติดตาม</span></label>
+            <label class="check-inline"><input type="checkbox" data-tts-allow="subscribers"> <span data-i18n="สมาชิก / Super Fans">สมาชิก / Super Fans</span></label>
+            <label class="check-inline"><input type="checkbox" data-tts-allow="moderators"> <span data-i18n="ผู้ดูแล (Mod)">ผู้ดูแล (Mod)</span></label>
+            <label class="check-inline"><input type="checkbox" data-tts-allow="teamMembers"> <span data-i18n="สมาชิกทีม">สมาชิกทีม</span></label>
+            <div class="allow-sub">
+              <span data-i18n="ระดับขั้นต่ำ">ระดับขั้นต่ำ</span>
+              <input type="number" min="1" max="50" data-tts-allow="teamMinLevel">
+            </div>
+            <label class="check-inline"><input type="checkbox" data-tts-allow="topGifters"> <span data-i18n="ผู้ให้ของขวัญอันดับต้น">ผู้ให้ของขวัญอันดับต้น</span></label>
+            <div class="allow-sub">
+              <span data-i18n="เอาอันดับ 1 ถึง">เอาอันดับ 1 ถึง</span>
+              <input type="number" min="1" max="50" data-tts-allow="topGiftersN">
+            </div>
+          </div>
+          <div class="hint" data-i18n="ติ๊กได้หลายข้อ — เข้าข้อใดข้อหนึ่งก็อ่าน · ติ๊กทุกคนแล้วข้ออื่นไม่มีผล · ใช้กับการอ่านแชทเท่านั้น ของขวัญกับผู้ติดตามใหม่ยังอ่านทุกคน">ติ๊กได้หลายข้อ — เข้าข้อใดข้อหนึ่งก็อ่าน · ติ๊กทุกคนแล้วข้ออื่นไม่มีผล · ใช้กับการอ่านแชทเท่านั้น ของขวัญกับผู้ติดตามใหม่ยังอ่านทุกคน</div>
+        </div>
+        <div class="field">
+          <label data-i18n="คำต้องห้าม (บรรทัดละคำ — ข้อความที่มีคำเหล่านี้จะไม่ถูกอ่าน)">คำต้องห้าม (บรรทัดละคำ — ข้อความที่มีคำเหล่านี้จะไม่ถูกอ่าน)</label>
+          <textarea data-tts="bannedWords" rows="3" placeholder="เช่น&#10;คำหยาบ1&#10;คำหยาบ2" data-i18n-ph="เช่น&#10;คำหยาบ1&#10;คำหยาบ2"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" data-icon="edit" data-i18n="รูปแบบข้อความที่อ่าน">รูปแบบข้อความที่อ่าน</div>
+        <div class="field">
+          <label><span data-i18n="รูปแบบการอ่านแชท">รูปแบบการอ่านแชท</span> <span class="muted small" data-i18n="— ใช้ {nickname} {comment} เช่นใส่แค่ {comment} = อ่านเฉพาะข้อความไม่อ่านชื่อ">— ใช้ {nickname} {comment} เช่นใส่แค่ {comment} = อ่านเฉพาะข้อความไม่อ่านชื่อ</span></label>
+          <input type="text" data-tts="chatTemplate" placeholder="{nickname} บอกว่า {comment}" data-i18n-ph="{nickname} บอกว่า {comment}">
+        </div>
+        <div class="field">
+          <label><span data-i18n="รูปแบบการอ่านของขวัญ">รูปแบบการอ่านของขวัญ</span> <span class="muted small" data-i18n="— ใช้ {nickname} {giftName} {repeatCount}">— ใช้ {nickname} {giftName} {repeatCount}</span></label>
+          <input type="text" data-tts="giftTemplate">
+        </div>
+        <div class="field">
+          <label><span data-i18n="รูปแบบการอ่านผู้ติดตาม">รูปแบบการอ่านผู้ติดตาม</span> <span class="muted small" data-i18n="— ใช้ {nickname}">— ใช้ {nickname}</span></label>
+          <input type="text" data-tts="followTemplate">
+        </div>
+        <div class="field">
+          <label data-i18n="ทดลองฟังเสียง">ทดลองฟังเสียง</label>
+          <div class="row-between">
+            <input type="text" id="ttsTestText" placeholder="พิมพ์ข้อความทดสอบ..." data-i18n-ph="พิมพ์ข้อความทดสอบ..." value="สวัสดีครับ ยินดีต้อนรับสู่ไลฟ์">
+            <button class="btn btn-primary" id="ttsTestBtn" data-icon="tts" data-i18n="ทดสอบเสียง">ทดสอบเสียง</button>
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- แป้นเสียง (Soundpad) — เนื้อหาทั้งแท็บวาดด้วย js/soundpad-ui.js (คีย์บอร์ดสร้างจากตารางข้อมูล) -->
+    <section class="tab" data-tab="soundpad" hidden>
+      <h1 data-i18n="แป้นเสียง (Soundpad)">แป้นเสียง (Soundpad)</h1>
+      <p class="muted" data-i18n="ใส่เสียงลงปุ่มคีย์บอร์ดแล้วกดเองระหว่างไลฟ์ — ค่าเริ่มต้นไม่กินปุ่ม พิมพ์และเล่นเกมได้ปกติ">ใส่เสียงลงปุ่มคีย์บอร์ดแล้วกดเองระหว่างไลฟ์ — ค่าเริ่มต้นไม่กินปุ่ม พิมพ์และเล่นเกมได้ปกติ</p>
+      <div id="soundpadRoot"></div>
+    </section>
+
+
+    <!-- ประวัติไลฟ์ -->
+    <section class="tab" data-tab="history" hidden>
+      <div class="row-between">
+        <h1 data-i18n="ประวัติไลฟ์">ประวัติไลฟ์</h1>
+        <div class="action-toolbar">
+          <button class="btn btn-sm" id="exportSessionsBtn" data-icon="upload" data-i18n="ส่งออกประวัติ (CSV)">ส่งออกประวัติ (CSV)</button>
+          <button class="btn btn-sm" id="exportGiftersBtn" data-icon="trophy" title="รวมยอดทุกไลฟ์ ไว้ดูว่าใครสนับสนุนประจำ" data-i18n-title="รวมยอดทุกไลฟ์ ไว้ดูว่าใครสนับสนุนประจำ" data-i18n="ส่งออกผู้สนับสนุน (CSV)">ส่งออกผู้สนับสนุน (CSV)</button>
+        </div>
+      </div>
+      <p class="muted" data-i18n="บันทึกสถิติทุกไลฟ์ให้อัตโนมัติ — คลิกแถวเพื่อดูท็อปผู้ให้ของขวัญ">บันทึกสถิติทุกไลฟ์ให้อัตโนมัติ — คลิกแถวเพื่อดูท็อปผู้ให้ของขวัญ</p>
+      <div id="sessionsList" class="actions-list"></div>
+    </section>
+
+    <!-- บัญชีและสมาชิก -->
+    <section class="tab" data-tab="account" hidden>
+      <h1 data-i18n="บัญชีและสมาชิก">บัญชีและสมาชิก</h1>
+      <p class="muted" data-i18n="สิทธิ์ใช้งาน บัญชีที่เข้าสู่ระบบ และเครื่องที่ผูกไว้">สิทธิ์ใช้งาน บัญชีที่เข้าสู่ระบบ และเครื่องที่ผูกไว้</p>
+      <div id="accountRoot"></div>
+    </section>
+
+    <!-- ตั้งค่า -->
+    <section class="tab" data-tab="settings" hidden>
+      <h1 data-i18n="ตั้งค่า">ตั้งค่า</h1>
+      <div class="card">
+        <div class="card-title" data-icon="globe" data-i18n="ภาษา">ภาษา</div>
+        <div class="field">
+          <label data-i18n="ภาษาที่แสดงในโปรแกรม">ภาษาที่แสดงในโปรแกรม</label>
+          <select data-setting="language" id="langSelect">
+            <option value="auto" data-i18n="ตามภาษาเครื่อง (อัตโนมัติ)">ตามภาษาเครื่อง (อัตโนมัติ)</option>
+            <option value="th">ไทย</option>
+            <option value="en">English</option>
+          </select>
+          <div class="hint" data-i18n="เปลี่ยนแล้วมีผลทันที">เปลี่ยนแล้วมีผลทันที</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-icon="server" data-i18n="เซิร์ฟเวอร์ Overlay">เซิร์ฟเวอร์ Overlay</div>
+        <div class="field">
+          <label><span data-i18n="พอร์ต">พอร์ต</span> <span class="muted small" data-i18n="(เปลี่ยนแล้วต้องรีสตาร์ทโปรแกรม + แก้ URL ในโปรแกรมไลฟ์ตาม)">(เปลี่ยนแล้วต้องรีสตาร์ทโปรแกรม + แก้ URL ในโปรแกรมไลฟ์ตาม)</span></label>
+          <input type="number" data-setting="serverPort" min="1024" max="65535" step="1">
+        </div>
+        <div class="field">
+          <label class="check-inline"><input type="checkbox" data-setting="serverAllowLan"> <span data-i18n="ให้เครื่องอื่นในวงเน็ตเดียวกันเปิด overlay ได้">ให้เครื่องอื่นในวงเน็ตเดียวกันเปิด overlay ได้</span> <span class="muted small" data-i18n="(เปลี่ยนแล้วต้องรีสตาร์ทโปรแกรม)">(เปลี่ยนแล้วต้องรีสตาร์ทโปรแกรม)</span></label>
+          <div class="hint" data-i18n-html="ปิดไว้ (แนะนำ): เปิด overlay ได้เฉพาะเครื่องนี้เครื่องเดียว<br>เปิด: ใช้เมื่อสตรีมด้วยโปรแกรมไลฟ์อีกเครื่องที่ต่อเน็ตวงเดียวกัน — <b>ห้ามเปิดตอนต่อ Wi-Fi สาธารณะ</b> เพราะคนอื่นในวงจะอ่านแชท ยอดเพชร ชื่อผู้ชม และยิงของขวัญปลอมขึ้นจอไลฟ์ได้">ปิดไว้ (แนะนำ): เปิด overlay ได้เฉพาะเครื่องนี้เครื่องเดียว<br>เปิด: ใช้เมื่อสตรีมด้วยโปรแกรมไลฟ์อีกเครื่องที่ต่อเน็ตวงเดียวกัน — <b>ห้ามเปิดตอนต่อ Wi-Fi สาธารณะ</b> เพราะคนอื่นในวงจะอ่านแชท ยอดเพชร ชื่อผู้ชม และยิงของขวัญปลอมขึ้นจอไลฟ์ได้</div>
+        </div>
+        <div class="field">
+          <label>Sign API Key <span class="muted small" data-i18n="(ไม่บังคับ — เพิ่มโควต้าการเชื่อมต่อ ขอได้ที่ eulerstream.com)">(ไม่บังคับ — เพิ่มโควต้าการเชื่อมต่อ ขอได้ที่ eulerstream.com)</span></label>
+          <input type="password" data-setting="signApiKey" placeholder="ปล่อยว่างได้" data-i18n-ph="ปล่อยว่างได้" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="check-inline"><input type="checkbox" data-setting="disconnectAlarm"> <span data-i18n="เสียงเตือน + แจ้งเตือนระบบเมื่อหลุดจากไลฟ์">เสียงเตือน + แจ้งเตือนระบบเมื่อหลุดจากไลฟ์</span> <span class="muted small" data-i18n="(ได้ยินแม้เล่นเกมเต็มจอ)">(ได้ยินแม้เล่นเกมเต็มจอ)</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-icon="keyboard" data-i18n="คีย์ลัด">คีย์ลัด</div>
+        <div class="field">
+          <label class="check-inline"><input type="checkbox" data-setting="hotkeyPassThrough"> <span data-i18n="ปล่อยปุ่มผ่านไปยังเกม/โปรแกรมอื่นด้วย">ปล่อยปุ่มผ่านไปยังเกม/โปรแกรมอื่นด้วย</span> <span class="muted small" data-i18n="(แนะนำ)">(แนะนำ)</span></label>
+          <div class="hint" data-i18n-html="เปิดไว้: กดปุ่มที่ตั้งเป็นคีย์ลัดแล้ว Action ทำงาน <b>และ</b> เกมที่เปิดอยู่ยังได้รับปุ่มนั้นตามปกติ — ตั้งปุ่มธรรมดาอย่าง G ได้โดยไม่พังการพิมพ์<br>ปิดไว้: โปรแกรมจะยึดปุ่มนั้นไว้ทั้งเครื่อง โปรแกรมอื่นจะไม่ได้รับปุ่มนั้นเลย · เปลี่ยนแล้วมีผลทันที ไม่ต้องรีสตาร์ท">เปิดไว้: กดปุ่มที่ตั้งเป็นคีย์ลัดแล้ว Action ทำงาน <b>และ</b> เกมที่เปิดอยู่ยังได้รับปุ่มนั้นตามปกติ — ตั้งปุ่มธรรมดาอย่าง G ได้โดยไม่พังการพิมพ์<br>ปิดไว้: โปรแกรมจะยึดปุ่มนั้นไว้ทั้งเครื่อง โปรแกรมอื่นจะไม่ได้รับปุ่มนั้นเลย · เปลี่ยนแล้วมีผลทันที ไม่ต้องรีสตาร์ท</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-icon="trophy" data-i18n="สถิติสะสมข้ามไลฟ์">สถิติสะสมข้ามไลฟ์</div>
+        <p class="muted small" data-i18n="เก็บเป็นไฟล์รายวันในเครื่อง ใช้ทำอันดับ/เป้าหมาย/กระดานของขวัญแบบรายสัปดาห์-รายเดือน · เริ่มนับตั้งแต่ติดตั้ง ย้อนหลังก่อนหน้านั้นไม่ได้">เก็บเป็นไฟล์รายวันในเครื่อง ใช้ทำอันดับ/เป้าหมาย/กระดานของขวัญแบบรายสัปดาห์-รายเดือน · เริ่มนับตั้งแต่ติดตั้ง ย้อนหลังก่อนหน้านั้นไม่ได้</p>
+        <div class="grid2">
+          <div class="field">
+            <label data-i18n="สัปดาห์เริ่มวัน">สัปดาห์เริ่มวัน</label>
+            <select data-setting="rollup.weekStart">
+              <option value="1" data-i18n="จันทร์">จันทร์</option>
+              <option value="0" data-i18n="อาทิตย์">อาทิตย์</option>
+            </select>
+          </div>
+          <div class="field"><label data-i18n="เก็บย้อนหลัง (วัน)">เก็บย้อนหลัง (วัน)</label><input type="number" min="7" max="1825" data-setting="rollup.keepDays"></div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label data-i18n="เก็บประวัติของขวัญตั้งแต่ (เหรียญ/ชิ้น)">เก็บประวัติของขวัญตั้งแต่ (เหรียญ/ชิ้น)</label>
+            <input type="number" min="0" max="99999" data-setting="rollup.giftMinCoins">
+            <div class="hint" data-i18n="กระดานของขวัญใหญ่แบบย้อนหลังจะเห็นได้แค่ของที่ราคาถึงเกณฑ์นี้ ตั้งต่ำ = ไฟล์ใหญ่ขึ้น">กระดานของขวัญใหญ่แบบย้อนหลังจะเห็นได้แค่ของที่ราคาถึงเกณฑ์นี้ ตั้งต่ำ = ไฟล์ใหญ่ขึ้น</div>
+          </div>
+          <div class="field"><label data-i18n="เก็บได้กี่ใบต่อวัน">เก็บได้กี่ใบต่อวัน</label><input type="number" min="20" max="5000" data-setting="rollup.giftsPerDay"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-icon="video">OBS Studio / Streamlabs Desktop</div>
+        <p class="muted small" data-i18n="เปิดใน OBS: Tools → WebSocket Server Settings → Enable → คัดลอกรหัสผ่านมาใส่ (ต้องเป็น OBS 28 ขึ้นไป)">เปิดใน OBS: Tools → WebSocket Server Settings → Enable → คัดลอกรหัสผ่านมาใส่ (ต้องเป็น OBS 28 ขึ้นไป)</p>
+        <div class="grid2">
+          <div class="field"><label data-i18n="ที่อยู่ WebSocket">ที่อยู่ WebSocket</label><input type="text" data-setting="obs.url" placeholder="ws://127.0.0.1:4455"></div>
+          <div class="field"><label data-i18n="รหัสผ่าน">รหัสผ่าน</label><input type="password" data-setting="obs.password"></div>
+        </div>
+        <label class="check-inline"><input type="checkbox" data-setting="obs.enabled"> <span data-i18n="เชื่อมต่อ OBS อัตโนมัติ">เชื่อมต่อ OBS อัตโนมัติ</span></label>
+        <div class="row-between">
+          <div class="obs-status" id="obsStatus" data-i18n="ยังไม่เชื่อมต่อ">ยังไม่เชื่อมต่อ</div>
+          <div>
+            <button class="btn btn-ghost btn-sm" id="obsConnectBtn" data-i18n="เชื่อมต่อ">เชื่อมต่อ</button>
+            <button class="btn btn-ghost btn-sm" id="obsDisconnectBtn" data-i18n="ตัดการเชื่อมต่อ">ตัดการเชื่อมต่อ</button>
+          </div>
+        </div>
+        <div class="obs-scenes" id="obsScenes"></div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-icon="server">Minecraft</div>
+        <p class="muted small" data-i18n="สั่งคำสั่งเข้าเซิร์ฟเวอร์ Minecraft ได้จาก Action (เช่น ได้ของขวัญแล้วเสกมอนสเตอร์) — เซิร์ฟเวอร์ต้องติดตั้งปลั๊กอิน ServerTap ก่อน (Bukkit / Spigot / PaperMC)">สั่งคำสั่งเข้าเซิร์ฟเวอร์ Minecraft ได้จาก Action (เช่น ได้ของขวัญแล้วเสกมอนสเตอร์) — เซิร์ฟเวอร์ต้องติดตั้งปลั๊กอิน ServerTap ก่อน (Bukkit / Spigot / PaperMC)</p>
+        <div class="grid2">
+          <div class="field"><label data-i18n="IP เซิร์ฟเวอร์">IP เซิร์ฟเวอร์</label><input type="text" data-setting="minecraft.host" placeholder="127.0.0.1"></div>
+          <div class="field"><label data-i18n="พอร์ต">พอร์ต</label><input type="number" min="1" max="65535" data-setting="minecraft.port" placeholder="4567"></div>
+          <div class="field"><label data-i18n="รหัสผ่าน (key ใน config.yml ของ ServerTap)">รหัสผ่าน (key ใน config.yml ของ ServerTap)</label><input type="password" data-setting="minecraft.key"></div>
+          <div class="field">
+            <label data-i18n="ชื่อผู้เล่น (ไม่บังคับ)">ชื่อผู้เล่น (ไม่บังคับ)</label>
+            <input type="text" data-setting="minecraft.playerName" placeholder="Steve">
+            <div class="hint" data-i18n="ใช้แทน {player} ในคำสั่ง · เว้นว่าง = @a (ทุกคนบนเซิร์ฟเวอร์) · ตัวพิมพ์เล็ก-ใหญ่ต้องตรง">ใช้แทน {player} ในคำสั่ง · เว้นว่าง = @a (ทุกคนบนเซิร์ฟเวอร์) · ตัวพิมพ์เล็ก-ใหญ่ต้องตรง</div>
+          </div>
+        </div>
+        <label class="check-inline"><input type="checkbox" data-setting="minecraft.enabled"> <span data-i18n="เปิดใช้การเชื่อมต่อ Minecraft">เปิดใช้การเชื่อมต่อ Minecraft</span></label>
+        <div class="row-between">
+          <div class="obs-status" id="mcStatus" data-i18n="ยังไม่ทดสอบ">ยังไม่ทดสอบ</div>
+          <button class="btn btn-ghost btn-sm" id="mcTestBtn" data-i18n="ทดสอบการเชื่อมต่อ">ทดสอบการเชื่อมต่อ</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-icon="flask" data-i18n="ตรวจระบบของขวัญ">ตรวจระบบของขวัญ</div>
+        <p class="muted small" data-i18n="ใช้ตอนสงสัยว่าของขวัญทำงานเยอะเกินจริง/ซ้ำ หรือตัวกรองผู้ฟัง TTS ไม่ทำงาน — ต่อไลฟ์ รอให้มีคนแชทและส่งของขวัญสักพัก แล้วค่อยกดตรวจ">ใช้ตอนสงสัยว่าของขวัญทำงานเยอะเกินจริง/ซ้ำ หรือตัวกรองผู้ฟัง TTS ไม่ทำงาน — ต่อไลฟ์ รอให้มีคนแชทและส่งของขวัญสักพัก แล้วค่อยกดตรวจ</p>
+        <div class="row-between">
+          <div class="obs-status" id="giftDiagStatus" data-i18n="ยังไม่ตรวจ">ยังไม่ตรวจ</div>
+          <div>
+            <button class="btn btn-ghost btn-sm" id="giftDiagCopyBtn" hidden data-icon="copy" data-i18n="คัดลอกผล">คัดลอกผล</button>
+            <button class="btn btn-sm" id="giftDiagBtn" data-icon="flask" data-i18n="ตรวจระบบของขวัญ">ตรวจระบบของขวัญ</button>
+          </div>
+        </div>
+        <pre class="pad-diag-out" id="giftDiagOut" hidden></pre>
+      </div>
+      <div class="card">
+        <div class="card-title" data-icon="download" data-i18n="อัปเดตโปรแกรม">อัปเดตโปรแกรม</div>
+        <div class="row-between">
+          <span class="muted small" id="updateStatusText" data-i18n="เวอร์ชันปัจจุบัน">เวอร์ชันปัจจุบัน</span>
+          <button class="btn btn-sm" id="checkUpdateBtn" data-icon="refresh" data-i18n="เช็คอัปเดต">เช็คอัปเดต</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-icon="info" data-i18n="เกี่ยวกับ">เกี่ยวกับ</div>
+        <p class="muted small">Tikkies Tools <span id="aboutVersion"></span> — <span data-i18n="เครื่องมือสำหรับสตรีมเมอร์ TikTok LIVE">เครื่องมือสำหรับสตรีมเมอร์ TikTok LIVE</span></p>
+        <p class="muted small" data-i18n="ใช้ไลบรารี tiktok-live-connector (ไม่เป็นทางการ ไม่เกี่ยวข้องกับ TikTok)">ใช้ไลบรารี tiktok-live-connector (ไม่เป็นทางการ ไม่เกี่ยวข้องกับ TikTok)</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Toast + Modal -->
+<!-- หน้าจ่ายเงิน Stripe — อยู่ระดับ body เพื่อให้ฉากหลังคลุมทั้งหน้าต่าง (sidebar + แถบสถานะ)
+     ถ้าวางไว้ในแท็บ animation ของ .tab (ใช้ transform) จะทำให้ position:fixed ถูกจำกัดแค่กรอบแท็บ -->
+<div id="billingModal" class="pay-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="payTitle">
+  <div class="pay-modal" role="document">
+    <div class="pay-modal-head">
+      <div class="pay-head-text">
+        <span class="pay-modal-title" id="payTitle" data-i18n="ชำระเงิน">ชำระเงิน</span>
+        <span class="pay-modal-sub" id="paySubtitle"></span>
+      </div>
+      <span class="pay-secure" data-icon="link" title="ข้อมูลบัตรอยู่กับ Stripe ไม่ผ่านโปรแกรม" data-i18n-title="ข้อมูลบัตรอยู่กับ Stripe ไม่ผ่านโปรแกรม">Stripe</span>
+      <button class="pay-close" id="billingCloseBtn" data-icon="x" title="ปิด (Esc)" data-i18n-title="ปิด (Esc)" aria-label="ปิด" data-i18n-aria="ปิด"></button>
+    </div>
+    <div id="billingHost" class="pay-frame">
+      <div class="billing-msg" id="billingMsg">
+        <span class="pay-spinner" aria-hidden="true"></span>
+        <span data-i18n="กำลังเปิดหน้าชำระเงิน…">กำลังเปิดหน้าชำระเงิน…</span>
+      </div>
+    </div>
+    <div class="pay-modal-foot">
+      <span class="pay-foot-note" data-i18n="ยังไม่มีการตัดเงินจนกว่าจะกดยืนยัน">ยังไม่มีการตัดเงินจนกว่าจะกดยืนยัน</span>
+      <button class="btn btn-sm" id="billingCancelBtn" data-i18n="ยกเลิก">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastHost" role="status" aria-live="polite"></div>
+<div id="modalHost" hidden></div>
+
+<script src="demo-data.js"></script>
+<script src="demo.js"></script>
+<script src="js/dict.en.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/util.js"></script>
+<!-- i18n ต้องโหลดหลัง util.js เพราะ util สร้าง window.Tk ใหม่ทั้งก้อน (i18n จึงมาเติม .t/.i18n ทีหลัง) -->
+<script src="js/i18n.js"></script>
+<script src="js/actions-editor.js"></script>
+<script src="js/auth-gate.js"></script>
+<!-- เอนจินเสียงต้องมาก่อน soundpad-ui (ui เรียก window.TkPad ตั้งแต่ mount) -->
+<script src="js/soundpad-audio.js"></script>
+<script src="js/soundpad-ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

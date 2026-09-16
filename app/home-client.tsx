@@ -1,0 +1,135 @@
+"use client";
+
+import { Eye, Gift } from "lucide-react";
+import { useState, type FormEvent, type PointerEvent } from "react";
+import type { GameWithTags } from "@/lib/content";
+import type { Tag } from "@/lib/generated/prisma/client";
+import { joinAjent, type JoinStatus } from "./actions";
+import { GameCard } from "./cards";
+import { texts } from "./data";
+import { Arrow, useUI } from "./ui";
+
+/** Hero brand text + TikTok join form (posts to Discord through the joinAjent server action). */
+export function HeroJoin() {
+  const { isEN } = useUI();
+  const t = isEN ? texts.en : texts.th;
+  const [tiktok, setTiktok] = useState("");
+  const [join, setJoin] = useState<JoinStatus | "idle" | "sending">("idle");
+
+  async function submitJoin(e: FormEvent) {
+    e.preventDefault();
+    setJoin("sending");
+    const status = await joinAjent(tiktok, isEN ? "EN" : "TH").catch((): JoinStatus => "failed");
+    setJoin(status);
+    if (status === "ok") setTiktok("");
+  }
+  const joinMsg = { idle: "", sending: t.joinSending, ok: t.joinOk, invalid: t.joinInvalid, rate: t.joinRate, failed: t.joinFailed }[join];
+
+  return (
+    <div className="hero-center">
+      <h1 className="hero-brand-text">
+        <span className="line1">{t.heroLine1}</span>
+        <span className="line2">{t.heroLine2}</span>
+      </h1>
+      <div className="hero-tagline">{t.heroTag}</div>
+      <form className="hero-cta" onSubmit={submitJoin}>
+        <input
+          type="text"
+          name="tiktok"
+          placeholder={t.heroInput}
+          aria-label={t.heroInput}
+          value={tiktok}
+          onChange={(e) => {
+            setTiktok(e.target.value);
+            if (join !== "sending") setJoin("idle");
+          }}
+          maxLength={200}
+          autoComplete="off"
+          required
+        />
+        <button type="submit" className="hero-cta-btn" disabled={join === "sending"}>
+          {join === "sending" ? t.joinSending : t.heroBtn}
+          <Arrow />
+        </button>
+      </form>
+      <p className={`hero-cta-msg${join === "ok" ? " ok" : join === "idle" || join === "sending" ? "" : " err"}`} role="status" aria-live="polite">
+        {joinMsg}
+      </p>
+    </div>
+  );
+}
+
+/** Category filter + game cards. Only categories that have a game in the list get a button. */
+export function GamesShowcase({ games, categories }: { games: GameWithTags[]; categories: Tag[] }) {
+  const [filter, setFilter] = useState<number | "all">("all");
+  const used = categories.filter((c) => games.some((g) => g.categoryId === c.id));
+
+  if (games.length === 0) return <p className="games-subtitle" style={{ textAlign: "center" }}>ยังไม่มีเกมที่เปิดให้แสดง</p>;
+  return (
+    <>
+      {used.length > 0 && (
+        <div className="games-filter reveal">
+          {[{ id: "all" as const, name: "ทั้งหมด" }, ...used].map((c) => (
+            <button key={c.id} type="button" className={`games-filter-btn${filter === c.id ? " active" : ""}`} onClick={() => setFilter(c.id)}>
+              {c.name}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="games-grid">
+        {games.map((g, i) => (
+          <GameCard
+            key={g.id}
+            game={g}
+            style={{ transitionDelay: `${i * 0.1}s`, display: filter === "all" || g.categoryId === filter ? undefined : "none" }}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+/** "4 steps" artwork as a layered 3D card: back plate, glow, light sheen and floating chips that tilt toward the mouse. */
+export function StepsVisual() {
+  function track(e: PointerEvent<HTMLDivElement>) {
+    if (e.pointerType !== "mouse") return;
+    const el = e.currentTarget;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    el.classList.add("tracking");
+    el.style.setProperty("--rx", `${(-y * 12).toFixed(2)}deg`);
+    el.style.setProperty("--ry", `${(x * 16).toFixed(2)}deg`);
+    el.style.setProperty("--mx", `${((x + 0.5) * 100).toFixed(1)}%`);
+    el.style.setProperty("--my", `${((y + 0.5) * 100).toFixed(1)}%`);
+  }
+  function rest(e: PointerEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    el.classList.remove("tracking");
+    for (const v of ["--rx", "--ry", "--mx", "--my"]) el.style.removeProperty(v);
+  }
+
+  return (
+    <div className="steps-visual reveal-scale" onPointerMove={track} onPointerLeave={rest}>
+      <div className="steps-stage">
+        <div className="steps-plate" />
+        <div className="steps-card">
+          <img src="/steps-live.jpg" alt="Let's Go Live! เริ่มไลฟ์ได้ง่ายๆ" loading="lazy" />
+          <span className="steps-sheen" />
+        </div>
+        <div className="steps-chip steps-chip-live">
+          <span className="live-dot" />
+          LIVE
+          <small>
+            <Eye size={13} /> 1.2K
+          </small>
+        </div>
+        {/* <div className="steps-chip steps-chip-gift">
+          <Gift size={16} />
+          Rose ×5
+          <small>หมุนกงล้อ</small>
+        </div> */}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,444 @@
+<!--
+  Tikkies Tools — Gift Jar Widget (โหลของขวัญ ฟิสิกส์จริง สไตล์ TikFinity สำหรับ แหล่งภาพชนิดเว็บของโปรแกรมไลฟ์)
+
+  ของขวัญตกลงในโหลด้วยฟิสิกส์จริง (แรงโน้มถ่วง+ชนกัน) กองสะสมกันเอง เต็มแล้วล้นออกมากองข้างโหล
+
+  วิธีใช้: เพิ่ม http://localhost:21213/widgets/jar.html เป็น แหล่งภาพชนิดเว็บในโปรแกรมไลฟ์
+    (พื้นหลังโปร่งใส แนะนำขนาด 480 x 560)
+
+  พารามิเตอร์:
+    ?capacity=60   จำนวนของขวัญที่ทำให้โหลเต็ม (เกินนี้ล้นออกข้างๆ) — ค่าเริ่มต้น 60
+                   ใส่ 0 = ไม่จำกัด เวทีขยายเต็มพื้นที่ widget แล้วปล่อยล้นกองไปเรื่อยๆ
+    ?sizebydiamonds=0  ปิดโหมด "ของขวัญแพงชิ้นใหญ่กว่า" (ปกติเปิดอยู่ คิดจากราคาต่อชิ้น แบบล็อกฐาน 10)
+    ?sizegap=70    ความต่างของขนาดตามราคา (%) — มากขึ้น = ของแพงยิ่งทิ้งห่างของถูก
+    ?size=300      ความกว้างโหล (px)
+    ?mindiamonds=N นับเฉพาะของขวัญ ≥ N เพชร
+    ?reset=1       ล้างทุกครั้งที่เชื่อมไลฟ์ใหม่
+    ?debug=1       ปุ่มหยอดทดสอบ (คลิกค้างหยอดรัว)
+    ?scale         ย่อ/ขยายทั้ง widget เหมือนตัวอื่น
+                   (ไม่มี ?template= — ตัวโหลเป็นรูปถ่าย ธีมทับอะไรไม่ได้ มีแต่ป้ายนับที่ปรับสี/ฟอนต์ได้)
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Gift Jar</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<link rel="stylesheet" href="common/templates.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; width: 100%; height: 100%; overflow: hidden;
+    font-family: 'Prompt', -apple-system, 'Helvetica Neue', 'Thonburi', sans-serif;
+    color: #fff; display: flex; align-items: flex-end; justify-content: center;
+  }
+  #stage { position: relative; }
+
+  /* ===== โหลแก้ว (SVG เมสันจาร์) ===== */
+
+  #jarFront { position: absolute; z-index: 4; pointer-events: none; }
+  /* โบว์ต้องมีเงาของตัวเอง ไม่งั้นดูเหมือนสติกเกอร์แปะบนแก้ว ไม่ใช่ผ้าที่ผูกอยู่ */
+  #jarPhoto { width: 100%; height: 100%; display: block; object-fit: fill;
+              filter: drop-shadow(0 14px 30px rgba(0,0,0,0.38)); }
+
+  /* ===== โลกของฟิสิกส์ (ของขวัญทั้งหมด) ===== */
+  #world { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+  .gift {
+    position: absolute; left: 0; top: 0; will-change: transform;
+    object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
+  }
+  .gift.emoji { display: flex; align-items: center; justify-content: center; }
+  #ground { position: absolute; left: 4%; right: 4%; height: 3px; z-index: 1; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent); border-radius: 3px; }
+
+  /* ===== โลกของฟิสิกส์ (ของขวัญทั้งหมด) ===== */
+  #world { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+  .gift {
+    position: absolute; left: 0; top: 0; will-change: transform;
+    object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
+  }
+  .gift.emoji { display: flex; align-items: center; justify-content: center; }
+  #ground { position: absolute; left: 4%; right: 4%; height: 3px; z-index: 1; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent); border-radius: 3px; }
+
+  /* ===== ป้ายนับ ===== */
+  #count {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 8;
+    display: flex; align-items: center; gap: 7px;
+    background: var(--pan-bg, rgba(10,12,20,0.72));
+    border: var(--pan-border, 1.5px solid var(--accent, #fe2c55));
+    border-radius: var(--pan-radius, 22px); padding: 6px 18px; white-space: nowrap;
+    color: var(--tpl-text, inherit); font-family: var(--tpl-font, inherit);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.45); backdrop-filter: blur(3px);
+  }
+  #count .ic { font-size: 15px; }
+  #count .num { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  #count .cap { font-size: 13px; color: #b9c2d6; }
+  #count.full { animation: fullPulse 0.9s ease infinite alternate; }
+  @keyframes fullPulse { to { box-shadow: 0 0 26px var(--accent-glow, rgba(254,44,85,0.85)); border-color: #fff; } }
+
+  #testBtn { position: fixed; right: 10px; bottom: 10px; z-index: 20; font-family: inherit; font-size: 13px; padding: 6px 14px; border-radius: 8px; border: 1px solid #555; background: #1c2130; color: #fff; cursor: pointer; }
+
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="count"><span class="ic">🎁</span><span class="num">0</span><span class="cap">/ 0</span></div>
+  <div id="ground"></div>
+  <div id="world"></div>
+  <!-- ชั้นหน้า: ปากโหล ห่วงเกลียวโลหะ และโบว์ อยู่หน้าของขวัญ → ของตกเข้าโหลลอดหลังปากและหลังโบว์ -->
+  <div id="jarFront">
+    <!-- สกิน "รูปถ่าย": โหลจริงเป็น PNG พื้นโปร่ง วางไว้ชั้นหน้าชั้นเดียว
+         ทำแบบนี้ได้เพราะ "ด้านในโหลในรูปโปร่งใสหมด" — ของขวัญที่กองอยู่ข้างในจึงมองทะลุเห็น
+         ส่วนฝา หูโบว์ และหางโบว์ที่ทึบ จะบังของขวัญให้เองอย่างถูกต้องโดยไม่ต้องตัดรูปเป็นสองชั้น -->
+    <img id="jarPhoto" src="assets/jar.png" alt="">
+  </div>
+</div>
+<script src="common/widget.js"></script>
+<script>
+(function () {
+  var P = TikkiesWidget.params;
+  // capacity=0 = ไม่จำกัด: โหลเต็มแล้วปล่อยล้นกองไปเรื่อยๆ จนเต็มพื้นที่ widget
+  // ป้ายนับจะไม่ขึ้น "/ ความจุ" และไม่มีสถานะเต็ม เพราะไม่มีเส้นชัยให้ไปถึง
+  var rawCap = P.get('capacity');
+  var UNLIMITED = String(rawCap) === '0';
+  // ตอนไม่จำกัด ยังต้องมีตัวเลขไว้คิดขนาดก้อน — ใช้ 60 เท่าค่าเริ่มต้นปกติ
+  // ไม่งั้นก้อนจะเล็กจิ๋วหรือใหญ่เบ้อเร่อโดยไม่มีเหตุผล
+  var CAP = UNLIMITED ? 60 : Math.max(1, Number(rawCap) || 60);
+  var SIZE = Math.max(160, Number(P.get('size')) || 300);
+  var MIN_D = Number(P.get('mindiamonds')) || 0;
+  var RESET_ON_CONNECT = P.get('reset') === '1';
+
+  // ---------- geometry ----------
+  // ตัวเลขชุดนี้คือ "รูปทรงจริงของโหลในรูป assets/jar.png" (346x402 ตัดขอบโปร่งแล้ว) วัดจากพิกเซลตรงๆ:
+  //   ผนังใน x 15/278 · ใต้ฝา y 102 · ก้นใน y 382
+  // ฟิสิกส์อ้างค่าพวกนี้ทั้งหมด — เปลี่ยนรูปโหลเมื่อไหร่ต้องวัดใหม่ ไม่งั้นของขวัญจะทะลุแก้วหรือลอยกลางอากาศ
+  var SK = { ratio: 402 / 346, wallL: 0.043, wallR: 0.803, mouth: 0.254, floor: 0.950 };
+
+  var jarW = SIZE;
+  var jarH = Math.round(SIZE * SK.ratio);
+  var topPad = Math.max(54, Math.round(SIZE * 0.32)); // ที่ว่างบน — เผื่อภูเขาพูนเหนือปากโหลไม่ชนป้ายนับ
+  var botPad = 16;
+  // เวทีปกติแคบ (จาร์ x1.55) → ของล้นกองใกล้โหล ไม่กระจายกว้าง
+  // โหมดไม่จำกัดต้องกว้าง/สูงเท่าพื้นที่ widget จริง ของจะได้กองล้นเต็มจอตามที่ตั้งใจ
+  var BASE_W = Math.round(jarW * 1.55);
+  var BASE_H = topPad + jarH + botPad;
+  var stageW, stageH, jarX, jarTop, jarL, jarR, rimY, tableY;
+
+  function layout() {
+    stageW = BASE_W; stageH = BASE_H;
+    if (UNLIMITED) {
+      stageW = Math.max(stageW, Math.round(window.innerWidth || 0));
+      stageH = Math.max(stageH, Math.round(window.innerHeight || 0));
+    }
+    jarX = (stageW - jarW) / 2;
+    // โหลนั่งที่ก้นเวทีเสมอ — เขียนเป็นระยะจากขอบล่าง เพื่อให้เวทีที่สูงขึ้นไม่ทำให้โหลลอย
+    // (ค่าที่ได้เท่ากับ topPad เดิมพอดีเมื่อเวทีเป็นขนาดปกติ)
+    jarTop = stageH - botPad - jarH;
+    jarL = jarX + jarW * SK.wallL; jarR = jarX + jarW * SK.wallR;
+    rimY = jarTop + jarH * SK.mouth;
+    tableY = jarTop + jarH * SK.floor;
+  }
+  layout();
+
+  var jarArea = (jarR - jarL) * (tableY - rimY);
+  // ขนาดของขวัญ: เดิมคิดจาก 'พื้นที่โหล / ความจุ' ตรงๆ (เท่ากับสมมติว่าวงกลมเรียงชิดได้ ~90%)
+  // แต่ของที่ตกกองเองเรียงได้จริงราว 78% โหลเลยพูนล้นตั้งแต่ยังไม่ครบความจุ — ลดตัวคูณลงให้จุครบจริง
+  var R = Math.max(8, Math.min((jarR - jarL) / 5, Math.sqrt(jarArea / CAP / Math.PI) * 0.84));
+  var GS = R * 2;
+
+  // ---------- ขนาดชิ้นตามราคาของขวัญ (ปิดด้วย ?sizebydiamonds=0) ----------
+  //
+  // ใช้ล็อกฐาน 10 ไม่ใช่สัดส่วนตรงๆ เพราะราคาของขวัญ TikTok ห่างกันมหาศาล
+  // (กุหลาบ 1 เพชร → Universe 34,999 เพชร) ถ้าคิดตามสัดส่วนหรือรากที่สอง
+  // Universe จะใหญ่กว่ากุหลาบ 187 เท่า ล้นจอไปคนเดียวจนของคนอื่นหายหมด
+  // ล็อกทำให้ "แพงกว่า = ใหญ่กว่าแบบเห็นได้" แต่ยังอยู่ในจอด้วยกันได้
+  // ความชันตั้งได้ด้วย ?sizegap= (หน่วยเป็น % ต่อราคาที่เพิ่มขึ้น 10 เท่า) ค่าเริ่มต้น 70:
+  //   1 เพชร → 1.00 เท่า · 10 → 1.70 · 50 → 2.19 · 100 → 2.40 · 1,000 → 3.10 · 34,999 → 4.18 (ตัดที่ 4.5)
+  // ของเดิมใช้ 35 ซึ่ง 1 เพชรกับ 50 เพชรต่างกันแค่ 1.6 เท่า มองด้วยตาแทบแยกไม่ออกว่าใครแพงกว่า
+  // คิดจาก "ราคาต่อชิ้น" ไม่ใช่ยอดรวม — กุหลาบ 100 ดอกคือกุหลาบ 100 ชิ้นเล็ก ไม่ใช่ก้อนยักษ์ก้อนเดียว
+  var SIZE_BY_D = P.get('sizebydiamonds') !== '0';   // เปิดไว้ตั้งแต่แรก — ปิดด้วย ?sizebydiamonds=0
+  // ต้องเช็คค่าว่างแยก ไม่ใช้ `|| 70` เพราะ sizegap=0 (ปิดความต่าง) เป็น falsy จะโดนเด้งกลับเป็น 70
+  var gapRaw = P.get('sizegap');
+  var SIZE_GAP = (gapRaw == null || gapRaw === '' || !isFinite(Number(gapRaw)))
+    ? 0.70 : Math.min(250, Math.max(0, Number(gapRaw))) / 100;
+  var SIZE_MAX = 4.5;
+  function radiusFor(perDiamond) {
+    if (!SIZE_BY_D) return R;
+    var d = Math.max(1, Number(perDiamond) || 1);
+    var k = 1 + Math.log(d) / Math.LN10 * SIZE_GAP;
+    if (k > SIZE_MAX) k = SIZE_MAX;
+    // ห้ามใหญ่เกินครึ่งความกว้างช่องโหล ไม่งั้นก้อนเดียวติดคาผนังจนของอื่นตกไม่ลง
+    return Math.min(R * k, (jarR - jarL) * 0.45);
+  }
+  // รัศมีใหญ่สุดที่มีอยู่ตอนนี้ — ใช้ตัดหางตอนหาคู่ชน (ดู step)
+  var maxR = R;
+
+  var stage = document.getElementById('stage');
+  var ground = document.getElementById('ground');
+
+  function paintLayout() {
+    stage.style.width = stageW + 'px'; stage.style.height = stageH + 'px';
+    var e = document.getElementById('jarFront');
+    e.style.left = jarX + 'px'; e.style.top = jarTop + 'px'; e.style.width = jarW + 'px'; e.style.height = jarH + 'px';
+    ground.style.top = (tableY + R * 0.7) + 'px';
+  }
+  paintLayout();
+
+  // แหล่งภาพในโปรแกรมไลฟ์อาจเริ่มตอนยังไม่มีขนาด (ซ่อนอยู่/ยังไม่ถูกจัดวาง) แล้ว
+  // window.innerWidth คืน 0 — ถ้าวัดครั้งเดียวตอนโหลด เวทีจะค้างแคบไปทั้งไลฟ์
+  // ทั้งที่ผู้ใช้ตั้งไม่จำกัดไว้ (เจอตอนทดสอบจริงในแผงที่ถูกซ่อน)
+  // ผู้ใช้ย่อ/ขยายแหล่งภาพกลางไลฟ์ก็ต้องตามด้วย จึงวัดใหม่ทุกครั้งที่ขนาดเปลี่ยน
+  if (UNLIMITED) {
+    var relayout = function () {
+      var w = stageW, h = stageH;
+      layout();
+      if (w === stageW && h === stageH) return;
+      paintLayout();
+      // ของที่กองอยู่ต้องขยับตามผนัง/พื้นชุดใหม่ — ปลุกให้ฟิสิกส์จัดกองใหม่เอง
+      for (var i = 0; i < bodies.length; i++) { bodies[i].sleep = false; bodies[i].still = 0; }
+      startLoop();
+    };
+    window.addEventListener('resize', relayout);
+    // เผื่อกรณีขนาดโผล่มาทีหลังโดยไม่มี event resize (แผงถูกซ่อนตอนโหลด)
+    if (!window.innerWidth || !window.innerHeight) {
+      var tries = 0;
+      var poll = setInterval(function () {
+        if (window.innerWidth && window.innerHeight) { clearInterval(poll); relayout(); }
+        else if (++tries > 40) clearInterval(poll);   // ~10 วิแล้วยังไม่มีขนาด เลิกถาม
+      }, 250);
+    }
+  }
+  document.documentElement.style.setProperty('--accent-weak', getComputedStyle(document.documentElement).getPropertyValue('--accent-weak') || 'rgba(254,44,85,0.20)');
+
+  var world = document.getElementById('world');
+  var numEl = document.querySelector('#count .num');
+  // ไม่จำกัด = ไม่มี "/ ความจุ" ให้เทียบ โชว์แค่ตัวเลขที่นับได้
+  document.querySelector('#count .cap').textContent = UNLIMITED ? '' : '/ ' + CAP;
+  var countEl = document.getElementById('count');
+  if (P.get('count') === '0') countEl.style.display = 'none';   // ?count=0 ซ่อนป้ายนับ
+
+  // ---------- physics (verlet + sleep) ----------
+  var GRAV = Math.max(0.35, SIZE * 0.0018);
+  var FRICT = 0.9;
+  var ITER = 6;                    // รอบแก้การชนต่อเฟรม
+  var SLOP = 0.7;                  // ยอมซ้อนได้เล็กน้อย → ไม่ต้องแก้ตลอด (ลดการดิ้น)
+  var SLEEP_SPD = Math.max(1.2, GRAV * 2.2); // ต้องสูงกว่าแรงโน้มถ่วง ไม่งั้นของที่ค่อยๆ ทรุดไม่นับว่านิ่ง
+  var SLEEP_FR = 20;               // นิ่งครบกี่เฟรม = หลับ (หยุดคำนวณ ไม่ดิ้น)
+  // จำนวนจริงสูงสุด (เต็มโหล+ล้นบางส่วน) เกินนี้บวกเลขอย่างเดียว
+  // ต้องมีเพดานตายตัวด้วย เพราะการแก้การชนแพงตามจำนวนก้อน และหน้าตั้งค่าเปิดให้ตั้ง capacity ถึง 999
+  // รัศมีก้อนมีพื้นล่างที่ 8px อยู่แล้ว โหลจึงเต็มตาที่ราวๆ 250 ก้อน เกินกว่านั้นเป็นของกองนอกโหลล้วนๆ
+  // (ป้ายนับยังขึ้นเลขเต็มตาม capacity ที่ผู้ใช้ตั้งเหมือนเดิม)
+  // โหมดไม่จำกัดต้องกองได้เยอะกว่าปกติมาก ถึงจะดู "ล้นเวอร์" ได้จริง
+  // แต่ยังต้องมีเพดาน เพราะการแก้การชนแพงตามจำนวนก้อน และ browser source ของโปรแกรมไลฟ์
+  // แชร์ CPU กับตัวเข้ารหัสวิดีโออยู่ — ปล่อยไม่จำกัดจริงๆ คือทำให้ไลฟ์กระตุก
+  // เกินเพดานแล้วป้ายนับยังเดินต่อ แค่ไม่เพิ่มก้อนใหม่
+  var MAX_BODIES = UNLIMITED ? 500 : Math.min(300, CAP + 40);
+  var bodies = [];
+  var count = 0;
+  // ลูปฟิสิกส์เดินเฉพาะตอนมีก้อน "ตื่น" อยู่ — พอทุกก้อนหลับ (กองนิ่งสนิท) ปล่อยให้ rAF หยุด
+  // ไม่งั้นทั้ง sweep การชน + การเขียน transform วนเต็ม 60fps ตลอดไลฟ์ทั้งที่ภาพไม่ขยับ
+  // กิน CPU/GPU ของเครื่องที่กำลังเข้ารหัสวิดีโออยู่เปล่าๆ แล้ว spawn()/reset() ค่อยปลุกกลับ
+  var running = false;
+  function startLoop() { if (!running) { running = true; requestAnimationFrame(step); } }
+
+  function makeEl(imgUrl, gs) {
+    var el;
+    if (imgUrl) { el = document.createElement('img'); el.className = 'gift'; el.src = imgUrl; el.alt = '';
+      el.onerror = function () { var d = document.createElement('div'); d.className = 'gift emoji'; d.textContent = '🎁'; d.style.width = gs + 'px'; d.style.height = gs + 'px'; d.style.fontSize = (gs * 0.82) + 'px'; d.style.transform = el.style.transform; if (el.parentNode) el.parentNode.replaceChild(d, el); for (var i = 0; i < bodies.length; i++) if (bodies[i].el === el) bodies[i].el = d; }; }
+    else { el = document.createElement('div'); el.className = 'gift emoji'; el.textContent = '🎁'; el.style.fontSize = (gs * 0.82) + 'px'; }
+    el.style.width = gs + 'px'; el.style.height = gs + 'px';
+    return el;
+  }
+
+  function spawn(imgUrl, perDiamond) {
+    count += 1;
+    numEl.textContent = count.toLocaleString();
+    countEl.classList.toggle('full', !UNLIMITED && count >= CAP);
+    if (bodies.length >= MAX_BODIES) return;         // อิ่มตัวแล้ว — บวกเลขอย่างเดียว
+    var r = radiusFor(perDiamond);
+    if (r > maxR) maxR = r;
+    var GS = r * 2;
+    var el = makeEl(imgUrl, GS);
+    world.appendChild(el);
+    startLoop();                                     // ของใหม่ตกลงมา = ปลุกลูปฟิสิกส์กลับ
+    // ปกติหยอดเข้ากลางปากโหลเสมอ → กองพูนขึ้นเป็นภูเขา พอเลยปากโหลก็ไหลตกลงกองข้างๆ เอง
+    //
+    // โหมดไม่จำกัด: พอโหลเต็มแล้วต้องเปลี่ยนไปโปรยทั่วความกว้างแทน
+    // ถ้ายังหยอดจุดเดิม ของจะกองเป็นโดมสูงเหนือปากโหลแล้ว "ค้าง" อยู่อย่างนั้น
+    // (โดมของก้อนกลมรองรับกันเองได้จริงตามฟิสิกส์ + ก้อนที่นิ่งแล้วจะหลับกลายเป็นฐานแข็ง)
+    // ผลคือของกองเป็นก้อนกลมลอยกลางจอแทนที่จะล้นเต็มพื้นที่ — เจอตอนทดสอบจริง
+    var cx = (jarL + jarR) / 2;
+    var x, y;
+    if (UNLIMITED && count > CAP) {
+      // โปรยจากขอบบนทั่วความกว้างเวที เว้นระยะขอบไว้ไม่ให้ติดผนัง
+      x = r + Math.random() * Math.max(1, stageW - r * 2);
+      y = -r - Math.random() * r * 4;
+    } else {
+      x = cx + (Math.random() - 0.5) * Math.min((jarR - jarL - GS), GS * 1.3);
+      // โหลใบนี้ฝาปิด ของขวัญจึงต้องเกิด "ใต้ปากโหล" คือในโพรงแก้วเลย ไม่ใช่เหนือปาก
+      //   1. เหนือปากโหลคือพื้นที่นอกโหลในสายตาฟิสิกส์ — constrain() คำนวณ inside ใหม่ทุกเฟรมตรงนั้น
+      //      ของที่เกิดเหนือปากแล้วโดนชิ้นอื่นเบียดออกด้านข้าง จะถูกตัดเป็น "นอกโหล" แล้วร่วงตกข้างโหล
+      //      (วัดจริงแล้ว 8 ใน 24 ชิ้นหลุดออกนอกแก้ว — มีเทสต์คุมไว้ใน widgets.test.js)
+      //   2. ฝาทึบอยู่แล้ว เกิดเหนือฝาก็ไม่มีใครเห็น มีแต่ทำให้ของกระเด็นออกนอกโหล
+      y = rimY + GS * 0.7 + Math.random() * GS * 0.6;
+    }
+    // inside = อยู่ในโหลไหม — ตัดสินตอนยังลอยเหนือปากโหล แล้วล็อกไว้จนกว่าจะลอยขึ้นไปเหนือปากอีก
+    // (เดิมตัดสินจาก b.x ใหม่ทุกเฟรม พอถูกดันจนศูนย์กลางข้ามเส้นผนัง มันกลับข้างแล้วดันทะลุออกนอกโหล)
+    var b = { el: el, x: x, y: y, ox: x - (Math.random() - 0.5) * 1.4, oy: y - 2, r: r, rot: (Math.random() - 0.5) * 60, orot: 0, inside: true };
+    bodies.push(b);
+  }
+
+  // ขยับตำแหน่งตอนชน (ไม่ขยับ ox/oy) → เปลี่ยนความเร็ว = หน่วงตอนกระทบ ของหยุดกองจริง
+  // (มี velocity clamp กันพุ่ง + SLOP กันดิ้นเล็ก)
+  function shift(b, dx, dy) { b.x += dx; b.y += dy; }
+
+  function constrain(b) {
+    // ผนังซ้าย-ขวาของเวที
+    if (b.x < b.r) { b.x = b.r; b.ox = b.x; }
+    else if (b.x > stageW - b.r) { b.x = stageW - b.r; b.ox = b.x; }
+    // พื้น/ก้นโหล (ระดับเดียวกันทั้งใน-นอก) — หยุดแนวดิ่ง (ไม่เด้ง)
+    if (b.y > tableY - b.r) { b.y = tableY - b.r; b.oy = b.y; }
+
+    // อัปเดตสถานะใน/นอก เฉพาะตอนลอยพ้นปากโหลขึ้นไปแล้วจริงๆ (มีระยะเผื่อกันสั่นที่ขอบพอดี)
+    // ของที่กองพูนจนถูกดันออกไปเลยปากโหล = กลายเป็น "นอกโหล" แล้วไหลตกลงข้างๆ ตามฟิสิกส์
+    if (b.y + b.r < rimY - 1) b.inside = (b.x > jarL && b.x < jarR);
+    // ตกกลับลงมาในปากโหลหลังถูกตัดว่าอยู่นอก (เช่นกลิ้งบนกองพูนแล้วร่วงเข้ารู)
+    // ถ้าไม่รับกลับเป็น 'ในโหล' มันจะโดนผนังดันออกข้างทันที = ของทะลุออกนอกโหลทั้งที่ยังไม่เต็ม
+    else if (!b.inside && b.x - b.r > jarL + 1 && b.x + b.r < jarR - 1) b.inside = true;
+
+    // ผนังโหล (เฉพาะช่วงใต้ปากโหล) — ในดันเข้า, นอกดันออก, หยุดแนวนอน
+    if (b.y > rimY && b.y < tableY) {
+      if (b.inside) {
+        if (b.x - b.r < jarL) { b.x = jarL + b.r; b.ox = b.x; }
+        if (b.x + b.r > jarR) { b.x = jarR - b.r; b.ox = b.x; }
+      } else if (b.x < (jarL + jarR) / 2) {
+        if (b.x + b.r > jarL) { b.x = jarL - b.r; b.ox = b.x; }
+      } else {
+        if (b.x - b.r < jarR) { b.x = jarR + b.r; b.ox = b.x; }
+      }
+    }
+  }
+
+  function wake(b) { if (b.sleep) { b.sleep = false; b.ox = b.x; b.oy = b.y; } b.still = 0; }
+
+  function byY(p, q) { return p.y - q.y; }
+
+  function step() {
+    var i, j, b, a2, dx, dy, d, min, ov, nx, ny;
+    // เพดานความเร็วคิดจากก้อนที่เล็กที่สุด ไม่ใช่ขนาดเดียว — เพดานมีไว้กันก้อนพุ่งทะลุกัน
+    // ซึ่งจะเกิดเมื่อเคลื่อนที่เกิน "รัศมีของก้อนที่เล็กที่สุด" ในหนึ่งเฟรม
+    var MAXV = R * 1.1;
+    for (i = 0; i < bodies.length; i++) {
+      b = bodies[i];
+      if (b.sleep) continue;      // หลับอยู่ → ไม่คำนวณ (ไม่ดิ้น)
+      var vx = (b.x - b.ox) * FRICT, vy = (b.y - b.oy) * FRICT;
+      if (vx > MAXV) vx = MAXV; else if (vx < -MAXV) vx = -MAXV;
+      if (vy > MAXV) vy = MAXV; else if (vy < -MAXV) vy = -MAXV;
+      b.ox = b.x; b.oy = b.y;
+      b.x += vx; b.y += vy + GRAV;
+      b.rot += vx * 1.1;
+      if (Math.abs(vx) + Math.abs(vy) < SLEEP_SPD) { b.still = (b.still || 0) + 1; if (b.still >= SLEEP_FR) b.sleep = true; }
+      else b.still = 0;
+    }
+    // ของกองแน่นมากๆ ลดรอบแก้การชนลงครึ่งหนึ่ง — ก้อนเล็กระดับนั้นซ้อนเหลื่อมนิดหน่อยแทบไม่เห็น
+    // แต่ค่ารอบเต็มที่ความจุปกติ (ค่าเริ่มต้น 60 = 100 ก้อน) ยังเหมือนเดิมทุกอย่าง
+    var iters = bodies.length > 200 ? 3 : ITER;
+    for (var it = 0; it < iters; it++) {
+      // เรียงตามแกน y ก่อนวนหาคู่ที่ชนกัน (sweep-and-prune) — พอเจอก้อนที่อยู่ต่ำกว่าเกิน
+      // เส้นผ่านศูนย์กลาง คู่ที่เหลือในลิสต์ยิ่งห่างลงไปอีก ตัดทิ้งทั้งหางได้เลย
+      // เดิมวนครบทุกคู่แบบ O(n²) ซ้ำ ITER รอบ ที่ความจุสูงๆ กิน CPU จนแหล่งภาพในโปรแกรมไลฟ์กระตุก
+      bodies.sort(byY);
+      for (i = 0; i < bodies.length; i++) {
+        b = bodies[i];
+        for (j = i + 1; j < bodies.length; j++) {
+          a2 = bodies[j];
+          dx = a2.x - b.x; dy = a2.y - b.y;
+          min = b.r + a2.r;
+          // ตัดหางต้องเทียบกับก้อนที่ใหญ่ที่สุดที่ยังเหลืออยู่ ไม่ใช่คู่ปัจจุบัน
+          // ลิสต์เรียงตาม y ก็จริง แต่ก้อนที่อยู่ต่ำลงไปอาจใหญ่กว่ามากจนยังชนกันได้
+          // ถ้าตัดด้วย min ของคู่นี้ ก้อนใหญ่จะทะลุกันตอนเปิดขนาดตามราคา
+          if (dy > b.r + maxR) break;
+          if (dy > min) continue;
+          if (Math.abs(dx) > min) continue;
+          d = Math.sqrt(dx * dx + dy * dy);
+          if (d > 0.0001 && d < min - SLOP) {   // ซ้อนเกินค่ายอม
+            ov = min - d; nx = dx / d; ny = dy / d;
+            if (b.sleep && a2.sleep) {
+              // ทั้งคู่หลับ (กองนิ่ง) — ปลุกเฉพาะชนแรงมาก
+              // เกณฑ์ปลุกอิงขนาดของคู่ที่ชนจริง ไม่ใช่ขนาดกลาง — ก้อนใหญ่ทับก้อนเล็กนิดเดียว
+              // ก็ไม่ควรปลุกทั้งกอง ส่วนก้อนเล็กที่ถูกอัดลึกต้องปลุกได้จริง
+              if (ov > Math.min(b.r, a2.r) * 0.6) { wake(b); wake(a2); shift(b, -nx * ov * 0.5, -ny * ov * 0.5); shift(a2, nx * ov * 0.5, ny * ov * 0.5); }
+            } else if (b.sleep) {                // b เป็นฐานนิ่ง → ดันเฉพาะ a2 (ไม่ขยับฐาน)
+              shift(a2, nx * ov, ny * ov); if (ov > Math.min(b.r, a2.r) * 0.5) wake(b);
+            } else if (a2.sleep) {
+              shift(b, -nx * ov, -ny * ov); if (ov > Math.min(b.r, a2.r) * 0.5) wake(a2);
+            } else {                             // ตื่นทั้งคู่ → ดันครึ่งๆ
+              shift(b, -nx * ov * 0.5, -ny * ov * 0.5); shift(a2, nx * ov * 0.5, ny * ov * 0.5);
+            }
+          } else if (d <= 0.0001) { wake(b); wake(a2); shift(b, -0.6, 0); shift(a2, 0.6, 0); }
+        }
+      }
+      // ก้อนที่หลับก็ต้องโดนบีบกลับเข้าผนังด้วย ไม่งั้นโดนเพื่อนดันทะลุโหลแล้วค้างอยู่ข้างนอก
+      for (i = 0; i < bodies.length; i++) constrain(bodies[i]);
+    }
+    var anyAwake = false;
+    for (i = 0; i < bodies.length; i++) {
+      b = bodies[i];
+      if (!b.sleep) anyAwake = true;
+      // ก้อนที่หลับและตำแหน่งไม่ขยับจากเฟรมก่อน ไม่ต้องเขียน transform ซ้ำ — เลี่ยง style recalc
+      // ของ browser source ที่ทำงานเปล่าทุกเฟรมทั้งที่กองนิ่ง
+      else if (b.sleep && b.x === b.lx && b.y === b.ly && b.rot === b.lr) continue;
+      b.lx = b.x; b.ly = b.y; b.lr = b.rot;
+      b.el.style.transform = 'translate(' + (b.x - b.r) + 'px,' + (b.y - b.r) + 'px) rotate(' + b.rot + 'deg)';
+    }
+    // ทุกก้อนหลับหมด = ไม่มีอะไรต้องคำนวณ/วาด หยุดลูปไว้ก่อน (spawn/reset ปลุกกลับ)
+    if (anyAwake) requestAnimationFrame(step);
+    else running = false;
+  }
+  startLoop();
+
+  function reset() {
+    count = 0; numEl.textContent = '0'; countEl.classList.remove('full');
+    bodies.length = 0; world.innerHTML = '';
+    maxR = R;   // ล้างแล้วต้องคืนค่าด้วย ไม่งั้นตัดหางเผื่อเกินไปทั้งไลฟ์ที่เหลือ
+  }
+
+  TikkiesWidget.connect({
+    onEvent: function (event, data) {
+      if (event === 'connected' && RESET_ON_CONNECT) { reset(); return; }
+      if (event !== 'gift' || !data || data.repeatEnd !== true) return;
+      var dt = Number(data.diamondTotal);
+      if (!isFinite(dt) || dt <= 0) dt = (Number(data.diamondCount) || 0) * (Number(data.repeatCount) || 1);
+      if (dt < MIN_D) return;
+      // ส่ง Rose x50 ต้องได้กุหลาบ 50 ดอกจริง — เดิมตัดที่ 12 ชิ้นต่อครั้งเสมอ
+      // คอมโบใหญ่แค่ไหนก็เห็นเท่ากันหมด ซึ่งขัดกับเหตุผลที่คนส่งของขวัญรัวๆ
+      // เพดานที่เหลือคือ MAX_BODIES (จำนวนก้อนรวมบนจอ) ซึ่งกันไลฟ์กระตุกอยู่แล้ว
+      var n = Math.max(1, Math.min(MAX_BODIES, Number(data.repeatCount) || 1));
+      // เทให้หมดภายในราว 3 วินาที ไม่ว่าจะกี่ชิ้น — คอมโบใหญ่จะได้เห็นเป็นสายเทลงมา
+      // ไม่ใช่โผล่พรวดพร้อมกันทั้งก้อน (และไม่ใช่หยดทีละ 90ms จนคอมโบ 500 ใช้เวลา 45 วินาที)
+      var gapMs = Math.max(16, Math.round(3000 / n));
+      // ราคาต่อชิ้น ไม่ใช่ยอดรวม — กุหลาบ 100 ดอกต้องเป็นก้อนเล็ก 100 ก้อน ไม่ใช่ก้อนยักษ์
+      // ถ้า event ไม่ได้บอกราคาต่อชิ้นมา ถอยไปหารเอาจากยอดรวม
+      var per = Number(data.diamondCount);
+      if (!isFinite(per) || per <= 0) per = dt / Math.max(1, Number(data.repeatCount) || 1);
+      // safeUrl ก่อนเสมอ — รูปของขวัญมาจาก event ผู้ชม/simulate ถ้า scheme แปลกให้ตกไปใช้อิโมจิ 🎁 แทน (กัน beacon)
+      var img = TikkiesWidget.safeUrl(data.giftPictureUrl);
+      for (var i = 0; i < n; i++) (function (d) { setTimeout(function () { spawn(img, per); }, d); })(i * gapMs);
+    }
+  });
+
+  if (P.get('debug') === '1') {
+    var b = document.createElement('button'); b.id = 'testBtn'; b.textContent = 'หยอดของขวัญ';
+    var hold = null;
+    // สุ่มราคาให้เห็นความต่างของขนาดตอนเปิด ?sizebydiamonds=1
+    var testD = function () { return [1, 5, 30, 200, 1000, 5000][Math.floor(Math.random() * 6)]; };
+    b.onmousedown = function () { spawn('', testD()); hold = setInterval(function () { spawn('', testD()); }, 40); };
+    b.onmouseup = b.onmouseleave = function () { clearInterval(hold); };
+    document.body.appendChild(b);
+  }
+})();
+</script>
+</body>
+</html>

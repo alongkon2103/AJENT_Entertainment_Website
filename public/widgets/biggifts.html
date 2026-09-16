@@ -1,0 +1,376 @@
+<!--
+  Tikkies Tools — Big Gifts (กระดานของขวัญใหญ่ สำหรับ แหล่งภาพชนิดเว็บของโปรแกรมไลฟ์)
+
+  วิธีใช้:
+    เพิ่ม http://localhost:21213/widgets/biggifts.html เป็น แหล่งภาพชนิดเว็บในโปรแกรมไลฟ์
+    (พื้นหลังโปร่งใส แนะนำขนาดกว้าง 900 สูง 260 สำหรับแบบเรียงกริด)
+
+  ต่างจาก Alert Box ยังไง: Alert Box เด้งทีละใบแล้วหายไป ตัวนี้เก็บค้างไว้บนจอ
+  ให้เห็นว่าใครส่งของใหญ่ให้บ้างตลอดไลฟ์
+
+  การนับคอมโบ: TikTok ส่ง event จบคอมโบมาครั้งเดียวพร้อมจำนวนรวม
+    ส่งของ 1000 เหรียญรัว 5 ครั้ง  → การ์ดใบเดียว ขึ้น x5
+    ส่งทีละอันแยกกัน 5 ครั้ง       → การ์ด 5 ใบแยกกัน
+  (เป็นพฤติกรรมของ TikTok เอง ไม่ได้รวม/แยกเพิ่มเติม)
+
+  พารามิเตอร์ (ต่อท้าย URL):
+    ?min=100        เหรียญขั้นต่ำ "ต่อชิ้น" ถึงจะขึ้นกระดาน (ค่าเริ่มต้น 100)
+    ?mintotal=0     เหรียญรวมขั้นต่ำของคอมโบนั้น (0 = ไม่ใช้เงื่อนไขนี้)
+    ?max=10         เก็บกี่ใบบนจอ (เกินแล้วใบเก่าสุดหลุด)
+    ?layout=grid    grid = กริดหลายแถว, list = แนวตั้ง, row = แนวนอนแถวเดียว, strip = แนวนอนเล็ก
+    ?size=96        ขนาดรูปของขวัญ (px)
+    ?sort=new       new = ใหม่สุดขึ้นก่อน, value = เหรียญเยอะขึ้นก่อน
+    ?name=0         ซ่อนชื่อคนส่ง
+    ?avatar=0       ซ่อนรูปโปรไฟล์คนส่ง
+    ?coins=0        ซ่อนยอดเหรียญ
+    ?giftname=1     แสดงชื่อของขวัญ (แบบแนวตั้งเปิดให้อยู่แล้ว)
+    ?xn=0           ซ่อนป้ายจำนวน xN
+    ?period=session ช่วงที่นับ: session | today | week | month | days:N | all
+                    ไม่ใช่ session = ดึงประวัติจากเครื่อง (เก็บเฉพาะของที่ราคาถึงเกณฑ์ในตั้งค่า)
+    ?keep=0         ไม่ต้องจำข้ามการรีเฟรชแหล่งภาพในโปรแกรมไลฟ์
+    ?reset=0        ไม่ต้องล้างกระดานเมื่อเริ่มไลฟ์ใหม่
+    ?debug=1        ปุ่มทดสอบ
+
+  ข้อมูล: ฟัง event 'gift' (เฉพาะตอน repeatEnd = จบคอมโบแล้ว)
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Big Gifts</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<link rel="stylesheet" href="common/templates.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; width: 100%; height: 100%; overflow: hidden;
+    font-family: var(--tpl-font);
+    color: var(--tpl-text);
+  }
+
+  #board { padding: 10px; display: flex; flex-wrap: wrap; gap: var(--gap, 10px); align-content: flex-start; }
+  #board.list { flex-direction: column; flex-wrap: nowrap; }
+  /* แนวนอนแถวเดียว — ไม่ตัดขึ้นบรรทัดใหม่ ใบเก่าไหลออกนอกจอไปเอง */
+  #board.row { flex-wrap: nowrap; align-items: flex-start; }
+  /* แนวนอนเล็ก — แถบบางๆ วางขอบจอ เอาแค่รูป + xN + ชื่อ */
+  #board.strip { flex-wrap: nowrap; align-items: center; padding: 6px 8px; }
+
+  .card {
+    position: relative; flex: 0 0 auto;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    width: calc(var(--pic, 96px) + 34px);
+    padding: var(--pan-pad, 10px 10px 12px);
+    background: var(--pan-bg);
+    border: var(--pan-border);
+    border-radius: var(--pan-radius);
+    box-shadow: var(--pan-shadow);
+    animation: pop .4s cubic-bezier(.2, 1.3, .4, 1) both;
+  }
+  #board.list .card {
+    flex-direction: row; width: 100%; align-items: center; gap: 11px;
+  }
+  #board.strip .card {
+    flex-direction: row; width: auto; align-items: center; gap: 7px;
+    padding: 4px 10px 4px 6px;
+  }
+  /* รูปเล็กลงเองในแบบแถบบาง แต่ยังปรับเล็กกว่านี้ได้ด้วย ?size= */
+  #board.strip .pic { width: min(var(--pic, 96px), 44px); height: min(var(--pic, 96px), 44px); }
+  #board.strip .pic.emoji { font-size: calc(min(var(--pic, 96px), 44px) * .66); }
+  #board.strip .xn { right: -3px; bottom: -3px; min-width: 20px; padding: 0 5px; font-size: 11.5px; }
+  #board.strip .nick { font-size: 12px; }
+  #board.strip .coins { font-size: 12px; }
+  #board.strip .av { width: 18px; height: 18px; font-size: 10px; }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(.72) translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ---- รูปของขวัญ + ป้ายจำนวน ---- */
+  .pic-wrap { position: relative; flex: 0 0 auto; }
+  .pic {
+    width: var(--pic, 96px); height: var(--pic, 96px);
+    object-fit: contain; display: block;
+    filter: drop-shadow(0 3px 8px rgba(0, 0, 0, .45));
+  }
+  .pic.emoji { display: grid; place-items: center; font-size: calc(var(--pic, 96px) * .62); }
+  /* xN — ตัวชี้ว่าส่งรัวกี่ครั้งในคอมโบเดียว โผล่เฉพาะตอนมากกว่า 1 */
+  .xn {
+    position: absolute; right: -4px; bottom: -4px;
+    min-width: 26px; padding: 1px 7px; border-radius: 999px;
+    background: var(--accent, #fe2c55); color: #fff;
+    font-size: 14px; font-weight: 800; line-height: 1.5;
+    text-align: center; white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .5);
+  }
+
+  /* ---- คนส่ง ---- */
+  .who { display: flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; }
+  .av {
+    flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+    background-size: cover; background-position: center;
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+  }
+  .nick {
+    min-width: 0; font-size: 13px; font-weight: 650;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    text-shadow: var(--tpl-shadow);
+  }
+  .coins {
+    font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--accent, #fe2c55);
+    text-shadow: var(--tpl-shadow);
+  }
+  #board.list .meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto; }
+  .gname {
+    display: none; max-width: 100%; font-size: 12px; color: var(--tpl-dim, rgba(236,236,241,.6));
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
+  }
+  .show-gname .gname { display: block; }
+  #board.list .gname { text-align: left; }
+
+  #empty { font-size: 13px; color: var(--tpl-dim, rgba(236,236,241,.55)); padding: 6px 4px; }
+
+  #dbg { position: fixed; left: 8px; bottom: 8px; z-index: 9; }
+  #dbg button {
+    font: 600 12px/1 inherit; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+    background: #1c1c22; color: #fff; border: 1px solid rgba(255,255,255,.25);
+  }
+
+  /* ================= ธีม (?template=) ================= */
+  [data-tpl="neon"] .card { box-shadow: var(--pan-shadow), var(--tpl-glow); }
+  [data-tpl="neon"] .xn { box-shadow: 0 0 12px var(--accent-glow, rgba(254,44,85,.55)); }
+  [data-tpl="neon"] .nick { text-transform: uppercase; letter-spacing: .05em; font-size: 12px; }
+
+  [data-tpl="glass"] .av { box-shadow: 0 0 0 2px rgba(255,255,255,.35); }
+  [data-tpl="glass"] .coins { color: #fff; }
+
+  [data-tpl="arcade"] .card { image-rendering: pixelated; }
+  [data-tpl="arcade"] .xn { border-radius: 0; border: 2px solid #fff; box-shadow: 3px 3px 0 rgba(0,0,0,.85); }
+  [data-tpl="arcade"] .av { border-radius: 0; }
+  [data-tpl="arcade"] .nick { font-size: 11.5px; }
+
+  /* plain — ป้ายจำนวน (×3) เปลี่ยนจากชิปพื้นสีเป็นตัวเลขสีเน้นลอยๆ */
+  [data-tpl="plain"] .xn {
+    background: none; padding: 0; color: var(--accent, #fe2c55);
+    text-shadow: var(--tpl-shadow);
+  }
+</style>
+</head>
+<body>
+
+<div id="board"><div id="empty"></div></div>
+<div id="dbg" hidden><button id="dbgBtn">ทดสอบของขวัญใหญ่</button></div>
+
+<script src="common/widget.js"></script>
+<script>
+(function () {
+  var P = TikkiesWidget.params;
+  var T = TikkiesWidget.T;   // ค่าเริ่มต้นตามภาษาที่ผู้ใช้ตั้งไว้ในโปรแกรม
+  var esc = TikkiesWidget.escapeHtml;
+  var safeUrl = TikkiesWidget.safeUrl;
+  var fmt = TikkiesWidget.formatNumber;
+
+  function num(k, d, min, max) {
+    var v = P.get(k);
+    if (v === null || v === '') return d;
+    v = Number(v);
+    if (!isFinite(v)) return d;
+    if (min != null) v = Math.max(min, v);
+    if (max != null) v = Math.min(max, v);
+    return v;
+  }
+  function flag(k, d) { var v = P.get(k); return v === null ? d : (v === '1' || v === 'true'); }
+
+  var MIN       = num('min', 100, 0, 9999999);      // เหรียญต่อชิ้น
+  var MIN_TOTAL = num('mintotal', 0, 0, 99999999);  // เหรียญรวมของคอมโบ
+  var MAX       = num('max', 10, 1, 60);
+  var PIC       = num('size', 96, 24, 400);
+  var GAP       = num('gap', 10, 0, 60);
+  var LAYOUTS   = { grid: 1, list: 1, row: 1, strip: 1 };
+  var LAYOUT    = LAYOUTS[P.get('layout')] ? P.get('layout') : 'grid';
+  var SORT      = P.get('sort') === 'value' ? 'value' : 'new';
+  var SHOW_NAME = flag('name', true);
+  var SHOW_AV   = flag('avatar', true);
+  var SHOW_COIN = flag('coins', true);
+  var SHOW_XN   = flag('xn', true);
+  // แบบแนวตั้งมีที่ว่างพอ เลยเปิดชื่อของขวัญให้เป็นค่าเริ่มต้น ที่เหลือปิดไว้ (การ์ดแคบ)
+  var SHOW_GIFT = flag('giftname', LAYOUT === 'list');
+  var PERIOD    = P.get('period') || 'session';
+  var KEEP      = flag('keep', true);
+  var RESET     = flag('reset', true);
+
+  var board = document.getElementById('board');
+  var emptyEl = document.getElementById('empty');
+  // ตั้งตอนรัน ไม่ฝังใน markup — markup เปลี่ยนตามภาษาที่ผู้ใช้เลือกไม่ได้
+  if (emptyEl) emptyEl.textContent = T('ยังไม่มีของขวัญใหญ่', 'No big gifts yet');
+  var root = document.documentElement.style;
+  root.setProperty('--pic', PIC + 'px');
+  root.setProperty('--gap', GAP + 'px');
+  if (LAYOUT !== 'grid') board.classList.add(LAYOUT);
+  if (SHOW_GIFT) board.classList.add('show-gname');
+
+  // ---- จำข้ามการรีเฟรชแหล่งภาพในโปรแกรมไลฟ์ ----
+  // โปรแกรมไลฟ์รีโหลดแหล่งภาพบ่อย (เปลี่ยนซีน/แก้ค่า) ถ้าไม่จำไว้ กระดานจะว่างกลางไลฟ์
+  // ผูก key กับลายเซ็นของ instance — หลาย source อยู่ใต้ origin เดียวกัน (localhost:21213)
+  // ถ้าใช้ key เดียวกันหมด สองกระดานคนละเกณฑ์ (เช่น min=100 กับ min=5000) จะเขียนทับกัน
+  // จนกลายเป็นชุดเดียว
+  var STORE_KEY = 'tikkies.biggifts:' + [MIN, MIN_TOTAL, MAX, PERIOD].join('|');
+  var items = [];
+  if (KEEP) {
+    try {
+      var saved = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+      // กรองซ้ำด้วยเกณฑ์ปัจจุบันตอนอ่านกลับ — ของเก่าที่ต่ำกว่าเกณฑ์ (เช่นเคยตั้ง min ต่ำกว่า)
+      // จะได้ไม่โผล่กลับมาหลังรีเฟรช source
+      if (Array.isArray(saved)) items = saved.filter(function (g) {
+        return g && g.per >= MIN && (!MIN_TOTAL || g.total >= MIN_TOTAL);
+      }).slice(0, MAX);
+    } catch (_) { items = []; }
+    // ทิ้ง URL รูปโปรไฟล์ที่ผิดรูปซึ่งถูกเก็บไว้ตั้งแต่ก่อนมี safeUrl — ของที่ปนเปื้อนอยู่ใน
+    // localStorage จะติดค้างข้ามการรีเฟรชแหล่งภาพ จนกว่าจะหลุดคิว เหลือเป็นวงกลมตัวอักษรแทน
+    items.forEach(function (g) { if (g && g.av && !safeUrl(g.av)) g.av = ''; });
+  }
+  function persist() {
+    if (!KEEP) return;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(items.slice(0, MAX))); } catch (_) {}
+  }
+
+  function colorFor(id) {
+    var h = 0, s = String(id || '?');
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+    return 'hsl(' + h + ', 55%, 45%)';
+  }
+
+  function cardHtml(g) {
+    // safeUrl ก่อนเสมอ — รูปของขวัญมาจาก event ผู้ชม/simulate ถ้า scheme แปลกให้ตกไปใช้อิโมจิแทน (กัน beacon)
+    var picUrl = safeUrl(g.img);
+    var pic = picUrl
+      ? '<img class="pic" src="' + esc(picUrl) + '" alt="" onerror="this.outerHTML=\'<div class=&quot;pic emoji&quot;>🎁</div>\'">'
+      : '<div class="pic emoji">🎁</div>';
+    var xn = (SHOW_XN && g.n > 1) ? '<div class="xn">x' + g.n + '</div>' : '';
+
+    var who = '';
+    if (SHOW_NAME || SHOW_AV) {
+      var av = '';
+      if (SHOW_AV) {
+        var initial = esc(String(g.nick || g.uid || '?').trim().charAt(0).toUpperCase());
+        // safeUrl ก่อนเสมอ — ค่านี้มาจากผู้ชม ถ้าหลุดออกจาก url() ได้ก็แปะ CSS ทับ overlay ได้ทั้งจอ
+        var avUrl = safeUrl(g.av);
+        av = avUrl
+          ? '<div class="av" style="background-image:url(' + esc(avUrl) + ')"></div>'
+          : '<div class="av" style="background:' + colorFor(g.uid) + '">' + initial + '</div>';
+      }
+      who = '<div class="who">' + av +
+            (SHOW_NAME ? '<div class="nick">' + esc(g.nick || g.uid || '') + '</div>' : '') +
+            '</div>';
+    }
+    var coins = SHOW_COIN ? '<div class="coins">💎 ' + fmt(g.total) + '</div>' : '';
+    var gname = SHOW_GIFT ? '<div class="gname">' + esc(g.name || '') + '</div>' : '';
+
+    return LAYOUT === 'list'
+      ? '<div class="pic-wrap">' + pic + xn + '</div><div class="meta">' + who + gname + '</div>' + coins
+      : '<div class="pic-wrap">' + pic + xn + '</div>' + gname + who + coins;
+  }
+
+  function render() {
+    var list = items.slice();
+    if (SORT === 'value') list.sort(function (a, b) { return b.total - a.total; });
+    list = list.slice(0, MAX);
+
+    board.innerHTML = '';
+    if (!list.length) {
+      emptyEl = document.createElement('div');
+      emptyEl.id = 'empty';
+      emptyEl.textContent = 'ยังไม่มีของขวัญใหญ่';
+      board.appendChild(emptyEl);
+      return;
+    }
+    list.forEach(function (g) {
+      var c = document.createElement('div');
+      c.className = 'card';
+      c.innerHTML = cardHtml(g);
+      board.appendChild(c);
+    });
+  }
+
+  function add(d) {
+    // นับเฉพาะตอนจบคอมโบ — ระหว่างกดรัว TikTok ยิง event ซ้ำ ถ้านับทุกใบจะได้การ์ดซ้ำเป็นสิบ
+    if (!d || d.repeatEnd !== true) return;
+    var per = Number(d.diamondCount) || 0;
+    var n = Math.max(1, Number(d.repeatCount) || 1);
+    var total = Number(d.diamondTotal);
+    if (!isFinite(total) || total <= 0) total = per * n;
+    if (per < MIN) return;
+    if (MIN_TOTAL > 0 && total < MIN_TOTAL) return;
+
+    items.unshift({
+      name: d.giftName || '', img: d.giftPictureUrl || '',
+      n: n, per: per, total: total,
+      // กรอง URL ตั้งแต่ตอนเก็บ ไม่ใช่ตอนวาด — การ์ดนี้ถูกเขียนลง localStorage ค่าที่ปนเปื้อน
+      // จะติดค้างข้ามการรีเฟรชแหล่งภาพ ไปจนกว่าจะหลุดคิว
+      nick: d.nickname || '', uid: d.uniqueId || '', av: safeUrl(d.profilePictureUrl),
+      at: Date.now()
+    });
+    if (items.length > MAX) items.length = MAX;
+    persist();
+    render();
+  }
+
+  render();
+
+  // ---- โหมดย้อนหลัง (สัปดาห์/เดือน/วันนี้) ----
+  // ดึงประวัติจากโปรแกรมแทนการฟัง event สด — ข้อมูลก้อนใหญ่และไม่ต้องอัปเดตทุกวินาที
+  if (PERIOD !== 'session') {
+    var base = 'http://' + (P.get('host') || location.hostname || 'localhost') +
+               ':' + (P.get('port') || location.port || 21213);
+    var qs = '?period=' + encodeURIComponent(PERIOD) + '&min=' + MIN +
+             '&mintotal=' + MIN_TOTAL + '&limit=' + MAX + '&sort=' + SORT;
+    var pull = function () {
+      fetch(base + '/api/rollup/gifts' + qs).then(function (r) { return r.json(); })
+        .then(function (d) {
+          items = ((d && d.gifts) || []).map(function (g) {
+            return {
+              name: g.giftName, img: g.giftPictureUrl, n: g.repeatCount,
+              per: g.diamondCount, total: g.diamondTotal,
+              nick: g.nickname, uid: g.uniqueId, av: safeUrl(g.profilePictureUrl), at: g.at
+            };
+          });
+          render();
+        })
+        .catch(function () { /* เซิร์ฟเวอร์ยังไม่พร้อม — รอบหน้าค่อยลองใหม่ */ });
+    };
+    pull();
+    setInterval(pull, 20000);
+  }
+
+  TikkiesWidget.connect({
+    onEvent: function (event, data) {
+      if (PERIOD !== 'session') return;   // โหมดย้อนหลังใช้ข้อมูลจากเซิร์ฟเวอร์อย่างเดียว
+      if (event === 'gift') return add(data);
+      // เริ่มไลฟ์ใหม่ = เริ่มนับใหม่ (ปิดด้วย ?reset=0 ถ้าอยากสะสมยาวๆ)
+      if (event === 'connected' && RESET) { items = []; persist(); render(); }
+    }
+  });
+
+  if (P.get('debug') === '1') {
+    document.getElementById('dbg').hidden = false;
+    var samples = [
+      { giftName: 'Galaxy', diamondCount: 1000, repeatCount: 1, nickname: 'สายเปย์ตัวจริง', uniqueId: 'vip1' },
+      { giftName: 'Universe', diamondCount: 34999, repeatCount: 1, nickname: 'NoBoss', uniqueId: 'vip2' },
+      { giftName: 'Rose', diamondCount: 1, repeatCount: 99, nickname: 'คนส่งกุหลาบ', uniqueId: 'rose' },
+      { giftName: 'Lion', diamondCount: 29999, repeatCount: 5, nickname: 'เจ้าของห้อง', uniqueId: 'boss' }
+    ];
+    var i = 0;
+    document.getElementById('dbgBtn').addEventListener('click', function () {
+      var s = samples[i++ % samples.length];
+      add({ ...s, repeatEnd: true, giftPictureUrl: '', profilePictureUrl: '',
+            diamondTotal: s.diamondCount * s.repeatCount });
+    });
+  }
+})();
+</script>
+</body>
+</html>

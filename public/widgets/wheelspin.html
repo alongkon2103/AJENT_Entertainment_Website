@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Random Wheel</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<link rel="stylesheet" href="common/templates.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; width: 100%; height: 100%; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--tpl-font);
+  }
+
+  #stage { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  #stage.hidden { opacity: 0; pointer-events: none; }
+  #stage { transition: opacity .25s ease; }
+
+  #title {
+    font-size: 15px; font-weight: 700; letter-spacing: .4px;
+    color: var(--title, #fff); text-shadow: 0 2px 8px rgba(0,0,0,.6);
+  }
+
+  #wrap { position: relative; }
+
+  /* เข็มชี้ — อยู่บนสุดกลางวง ชี้ลง */
+  #needle {
+    position: absolute; left: 50%; top: -2px; transform: translateX(-50%);
+    width: 0; height: 0; z-index: 3;
+    border-left: 11px solid transparent; border-right: 11px solid transparent;
+    border-top: 20px solid var(--needle, #ffbe46);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.55));
+  }
+
+  #ring {
+    position: relative; border-radius: 50%;
+    border: var(--rim, 6px) solid var(--rimcolor, rgba(255,255,255,.9));
+    box-shadow: 0 10px 34px rgba(0,0,0,.5), inset 0 0 0 2px rgba(0,0,0,.25);
+    overflow: hidden;
+    will-change: transform;
+  }
+  #ring canvas { display: block; }
+
+  /* ดุมกลาง */
+  #hub {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    display: grid; place-items: center; border-radius: 50%; z-index: 2;
+    background: var(--hubbg, #101820);
+    border: 3px solid var(--rimcolor, rgba(255,255,255,.9));
+    box-shadow: 0 4px 14px rgba(0,0,0,.5);
+    color: var(--hubtext, #fff); font-weight: 800; letter-spacing: .5px;
+    text-align: center; line-height: 1.1; padding: 4px;
+  }
+
+  /* ป้ายผลรางวัล */
+  #result {
+    max-width: 92vw; padding: 8px 18px; border-radius: 999px;
+    background: var(--needle, #ffbe46); color: #1a1204;
+    font-size: 17px; font-weight: 800; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    box-shadow: 0 8px 26px rgba(0,0,0,.5);
+    opacity: 0; transform: scale(.7); transition: opacity .25s ease, transform .25s cubic-bezier(.2,1.5,.4,1);
+  }
+  #result.show { opacity: 1; transform: scale(1); }
+
+  #dbg { position: fixed; left: 8px; bottom: 8px; z-index: 9; }
+  #dbg button {
+    font: 600 12px/1 inherit; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+    background: #1c1c22; color: #fff; border: 1px solid rgba(255,255,255,.25);
+  }
+
+  /* ================= ธีม (?template=) =================
+     สีของช่องยังมาจาก ?palette= / ?colors= เหมือนเดิม — ธีมคุมแค่ "กรอบ" ของวงล้อ
+     (ขอบวง ดุมกลาง เข็มชี้ ป้ายผล หัวข้อ) จะได้ผสมกับชุดสีไหนก็ได้ */
+
+  /* neon — ขอบวงเรืองแสง ดุมดำสนิท ป้ายผลเป็นแถบเหลี่ยมมี glow */
+  [data-tpl="neon"] #ring {
+    box-shadow: 0 0 22px var(--accent-glow, rgba(254,44,85,.55)),
+                0 0 60px var(--accent-weak, rgba(254,44,85,.22)),
+                inset 0 0 0 2px rgba(0,0,0,.5);
+  }
+  [data-tpl="neon"] #hub {
+    background: #04040a;
+    box-shadow: 0 0 18px var(--accent-glow, rgba(254,44,85,.55));
+    text-transform: uppercase; letter-spacing: .12em;
+  }
+  [data-tpl="neon"] #result {
+    border-radius: 3px;
+    box-shadow: 0 0 20px var(--accent-glow, rgba(254,44,85,.55));
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  [data-tpl="neon"] #title {
+    text-transform: uppercase; letter-spacing: .14em;
+    text-shadow: 0 0 12px var(--accent-glow, rgba(254,44,85,.55));
+  }
+  [data-tpl="neon"] #needle { filter: drop-shadow(0 0 8px var(--needle, #ffbe46)); }
+
+  /* glass — ขอบวงขาวบาง ดุมกระจกฝ้า ป้ายผลเป็นแคปซูลใส */
+  [data-tpl="glass"] #ring {
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255,255,255,.3);
+  }
+  [data-tpl="glass"] #hub {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    color: #fff;
+  }
+  [data-tpl="glass"] #result {
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #fff;
+    backdrop-filter: blur(16px) saturate(1.5);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  [data-tpl="glass"] #title { font-weight: 650; letter-spacing: 1px; }
+
+  /* arcade — ขอบวงหนา เงาแข็ง ดุมเหลี่ยม ป้ายผลเป็นบล็อก */
+  [data-tpl="arcade"] #ring {
+    box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.85), inset 0 0 0 3px #000;
+  }
+  [data-tpl="arcade"] #hub {
+    border-radius: 0;
+    border-width: 4px;
+    background: #000;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85);
+    text-transform: uppercase;
+  }
+  [data-tpl="arcade"] #result {
+    border-radius: 0;
+    border: 3px solid #fff;
+    box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.85);
+    text-transform: uppercase;
+  }
+  [data-tpl="arcade"] #title { text-transform: uppercase; letter-spacing: .1em; text-shadow: 3px 3px 0 rgba(0,0,0,.9); }
+  [data-tpl="arcade"] #needle { filter: drop-shadow(3px 3px 0 rgba(0,0,0,.85)); }
+</style>
+</head>
+<body>
+
+<div id="stage" class="hidden">
+  <div id="title"></div>
+  <div id="wrap">
+    <div id="needle"></div>
+    <div id="ring"><canvas id="cv"></canvas></div>
+    <div id="hub"></div>
+  </div>
+  <div id="result"></div>
+</div>
+
+<div id="dbg" hidden><button id="dbgBtn">ทดสอบหมุน</button></div>
+
+<script src="common/widget.js"></script>
+<script>
+(function () {
+  var P = TikkiesWidget.params;
+  var esc = TikkiesWidget.escapeHtml;
+
+  function num(k, d, min, max) {
+    var v = Number(P.get(k));
+    if (!isFinite(v) || P.get(k) === null) v = d;
+    if (min != null) v = Math.max(min, v);
+    if (max != null) v = Math.min(max, v);
+    return v;
+  }
+  function flag(k, d) { var v = P.get(k); return v === null ? d : (v === '1' || v === 'true'); }
+  function str(k, d) { var v = P.get(k); return v === null || v === '' ? d : v; }
+
+  // ---- ตัวเลือกทั้งหมด (ทุกอย่างปรับได้จาก URL — หน้าโปรแกรมสร้าง URL ให้) ----
+  var SIZE      = num('size', 320, 120, 900);      // เส้นผ่านศูนย์กลางวงล้อ
+  var RIM       = num('rim', 6, 0, 30);            // ความหนาขอบวง
+  var HUB       = num('hub', 28, 0, 60);           // ขนาดดุมกลาง (% ของวง)
+  var FONT      = num('labelsize', 15, 8, 48);     // ขนาดตัวอักษรในช่อง (เดิมชื่อ font — ชนกับตัวเลือกฟอนต์กลาง)
+  var NEEDLE    = str('needle', '#ffbe46');
+  var RIMCOLOR  = str('rimcolor', '#ffffff');
+  var HUBBG     = str('hubbg', '#101820');
+  var HUBTEXT   = str('hubtext', '#ffffff');
+  var HUBLABEL  = str('hublabel', 'SPIN');
+  var TEXTCOLOR = str('textcolor', '#ffffff');
+  var TITLECOL  = str('titlecolor', '#ffffff');
+  var SHOWTITLE = str('title', '') !== '0';
+  var SHOWLABEL = flag('labels', true);            // โชว์ข้อความในช่อง
+  var SHOWRESULT= flag('result', true);            // โชว์ป้ายผลรางวัล
+  var IDLEHIDE  = flag('idlehide', false);
+  var SPINS     = num('spins', 6, 1, 30);          // จำนวนรอบก่อนหยุด
+  var PALETTE   = str('palette', 'tiktok');
+  var CUSTOM    = str('colors', '');               // สีเองคั่นด้วย , เช่น #ff0000,#00ff00
+
+  var PALETTES = {
+    tiktok:  ['#fe2c55', '#25f4ee', '#12121a', '#ff7597', '#0f8b8d', '#2b2b3a'],
+    console: ['#427ab5', '#0d1e2e', '#5b93cc', '#0a1520', '#7a9bb8', '#12283c'],
+    candy:   ['#ff6b9d', '#c44dff', '#4dd2ff', '#ffd166', '#06d6a0', '#ef476f'],
+    gold:    ['#f0c060', '#1a1204', '#e0b65c', '#2b2110', '#ffd98a', '#3d2f16'],
+    mono:    ['#2a2a34', '#3a3a46', '#1f1f28', '#454553', '#26262f', '#33333d']
+  };
+  function palette() {
+    if (CUSTOM) {
+      var list = CUSTOM.split(',').map(function (c) { return c.trim(); }).filter(Boolean);
+      if (list.length) return list;
+    }
+    return PALETTES[PALETTE] || PALETTES.tiktok;
+  }
+
+  var stage = document.getElementById('stage');
+  var ring = document.getElementById('ring');
+  var cv = document.getElementById('cv');
+  var hub = document.getElementById('hub');
+  var titleEl = document.getElementById('title');
+  var resultEl = document.getElementById('result');
+
+  document.documentElement.style.setProperty('--needle', NEEDLE);
+  document.documentElement.style.setProperty('--rim', RIM + 'px');
+  document.documentElement.style.setProperty('--rimcolor', RIMCOLOR);
+  document.documentElement.style.setProperty('--hubbg', HUBBG);
+  document.documentElement.style.setProperty('--hubtext', HUBTEXT);
+  document.documentElement.style.setProperty('--title', TITLECOL);
+
+  var hubPx = Math.round(SIZE * HUB / 100);
+  hub.style.width = hubPx + 'px';
+  hub.style.height = hubPx + 'px';
+  hub.style.fontSize = Math.max(8, Math.round(hubPx * 0.22)) + 'px';
+  hub.style.display = HUB > 0 ? 'grid' : 'none';
+  hub.textContent = HUBLABEL === '0' ? '' : HUBLABEL;
+  ring.style.width = SIZE + 'px';
+  ring.style.height = SIZE + 'px';
+
+  // ---- วาดวงล้อลง canvas (คมกว่า conic-gradient และใส่ข้อความโค้งตามช่องได้) ----
+  var segments = [];
+  function draw() {
+    var dpr = Math.min(3, window.devicePixelRatio || 1);
+    cv.width = SIZE * dpr;
+    cv.height = SIZE * dpr;
+    cv.style.width = SIZE + 'px';
+    cv.style.height = SIZE + 'px';
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, SIZE, SIZE);
+
+    var n = segments.length;
+    if (!n) return;
+    var cx = SIZE / 2, cy = SIZE / 2, r = SIZE / 2;
+    var step = (Math.PI * 2) / n;
+    var cols = palette();
+
+    for (var i = 0; i < n; i++) {
+      // เริ่มที่ -90° เพื่อให้ "ช่องที่ 0" อยู่กึ่งกลางด้านบนพอดี ตรงกับเข็มชี้
+      var a0 = -Math.PI / 2 - step / 2 + i * step;
+      var a1 = a0 + step;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, a0, a1);
+      ctx.closePath();
+      ctx.fillStyle = cols[i % cols.length];
+      ctx.fill();
+      // เส้นคั่นบางๆ ให้แต่ละช่องแยกกันชัดแม้สีใกล้กัน
+      ctx.strokeStyle = 'rgba(0,0,0,.28)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      if (SHOWLABEL) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(a0 + step / 2);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = TEXTCOLOR;
+        ctx.font = '700 ' + FONT + 'px Prompt, sans-serif';
+        ctx.shadowColor = 'rgba(0,0,0,.55)';
+        ctx.shadowBlur = 3;
+        var maxW = r - hubPx / 2 - 16;
+        var label = String(segments[i].label || '');
+        // ตัดข้อความที่ยาวเกินช่องแทนการปล่อยล้นทับช่องอื่น
+        while (label.length > 1 && ctx.measureText(label).width > maxW) label = label.slice(0, -1);
+        if (label !== segments[i].label) label = label.slice(0, -1) + '…';
+        ctx.fillText(label, r - 12, 0);
+        ctx.restore();
+      }
+    }
+  }
+
+  // ---- หมุน ----
+  var spinning = false;
+  var currentDeg = 0;
+  var hideTimer = null;
+  var doneTimer = null;   // timer ตัวจบรอบ (โชว์ป้ายผล) — ต้องยกเลิกถ้ามีรอบใหม่แทรกเข้ามา
+
+  function show() { stage.classList.remove('hidden'); }
+  function maybeHide() {
+    if (!IDLEHIDE) return;
+    stage.classList.add('hidden');
+  }
+
+  function spinTo(winnerIndex, durationSec, label, holdSec) {
+    var n = segments.length;
+    if (!n) return;
+    spinning = true;
+    // ยกเลิก timer ทั้งสองของรอบก่อน — ไม่งั้นตัวจบรอบเก่าจะยิงกลางรอบใหม่
+    // แล้วโชว์ป้ายผลของรอบเก่าทับ (ประกาศรางวัลผิดคน)
+    clearTimeout(hideTimer);
+    clearTimeout(doneTimer);
+    show();
+    resultEl.classList.remove('show');
+
+    var step = 360 / n;
+    // เข็มอยู่ด้านบน: ต้องหมุนวงล้อให้ "กึ่งกลางช่องที่ชนะ" มาอยู่ที่ 0°
+    // ช่อง i อยู่ที่มุม i*step อยู่แล้ว จึงหมุนย้อนกลับเท่ากับ -i*step
+    var target = -winnerIndex * step;
+    // บวกรอบเต็มเข้าไปให้ดูเหมือนหมุนจริง และให้ค่าเพิ่มขึ้นเสมอ (ไม่หมุนย้อน)
+    var base = currentDeg - (currentDeg % 360);
+    var final = base + SPINS * 360 + target;
+    while (final <= currentDeg) final += 360;
+    currentDeg = final;
+
+    ring.style.transition = 'transform ' + durationSec + 's cubic-bezier(.15,.9,.2,1)';
+    ring.style.transform = 'rotate(' + final + 'deg)';
+
+    doneTimer = setTimeout(function () {
+      doneTimer = null;
+      spinning = false;
+      if (SHOWRESULT && label) {
+        resultEl.textContent = label;
+        resultEl.classList.add('show');
+      }
+      hideTimer = setTimeout(function () {
+        resultEl.classList.remove('show');
+        maybeHide();
+      }, Math.max(1, holdSec) * 1000);
+    }, durationSec * 1000 + 60);
+  }
+
+  function applyConfig(w) {
+    if (!w) return;
+    var segs = Array.isArray(w.segments) ? w.segments.filter(function (s) { return s && String(s.label || '').trim(); }) : [];
+    if (segs.length) { segments = segs; draw(); }
+    if (SHOWTITLE) titleEl.textContent = str('title', w.title || '');
+    titleEl.style.display = SHOWTITLE && titleEl.textContent ? '' : 'none';
+    if (!IDLEHIDE) show();
+  }
+
+  TikkiesWidget.connect({
+    onEvent: function (event, data) {
+      // ใช้ settings.randomWheel — คนละชุดกับ Roulette (settings.wheel) โดยตั้งใจ
+      if (event === 'snapshot') {
+        applyConfig(data && data.settings && data.settings.randomWheel);
+        return;
+      }
+      if (event === 'randomWheelSpin') {
+        // ใช้ช่องจาก event เสมอ — กันกรณีผู้ใช้เพิ่งแก้รายการรางวัลแล้ว widget ยังถือของเก่า
+        if (Array.isArray(data.segments) && data.segments.length) { segments = data.segments; draw(); }
+        if (SHOWTITLE && data.title) { titleEl.textContent = str('title', data.title); titleEl.style.display = ''; }
+        spinTo(data.winnerIndex || 0, Math.max(1, Number(data.durationSec) || 8), data.label, Number(data.resultHoldSec) || 6);
+      }
+    }
+  });
+
+  if (IDLEHIDE) stage.classList.add('hidden'); else show();
+
+  // ปุ่มทดสอบ (?debug=1) — หมุนเองโดยไม่ต้องรอ event จริง
+  if (flag('debug', false)) {
+    document.getElementById('dbg').hidden = false;
+    document.getElementById('dbgBtn').addEventListener('click', function () {
+      if (!segments.length) {
+        segments = [{ label: 'รางวัลที่ 1' }, { label: 'รางวัลที่ 2' }, { label: 'รางวัลที่ 3' },
+                    { label: 'รางวัลที่ 4' }, { label: 'รางวัลที่ 5' }, { label: 'รางวัลใหญ่!' }];
+        draw();
+      }
+      if (spinning) return;
+      var i = Math.floor(Math.random() * segments.length);
+      spinTo(i, 5, segments[i].label, 4);
+    });
+  }
+})();
+</script>
+</body>
+</html>

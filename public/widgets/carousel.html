@@ -1,0 +1,163 @@
+<!--
+  Tikkies Tools — Carousel / Interaction Slider (แถบเลื่อนของขวัญ+ข้อความ สไตล์ TikFinity)
+
+  โชว์รายการที่ตั้งไว้ (รูปของขวัญ + ข้อความ) เลื่อนวนไปเรื่อยๆ แบบ marquee
+
+  วิธีใช้: เพิ่ม http://localhost:21213/widgets/carousel.html เป็น แหล่งภาพชนิดเว็บในโปรแกรมไลฟ์
+    (พื้นหลังโปร่งใส แนะนำขนาด 900 x 220) — ตั้งรายการในแท็บ "ตัวเลื่อน" ในแอป
+
+  พารามิเตอร์:
+    ?speed=90     ความเร็วเลื่อน (px/วินาที) — มาก=เร็ว
+    ?size=120     ขนาดการ์ด (px)
+    ?accent / ?scale
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Carousel</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<link rel="stylesheet" href="common/templates.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; width: 100%; height: 100%; overflow: hidden;
+    font-family: var(--tpl-font);
+    /* justify-content: center — เดิมขาดไป ทำให้เนื้อหาไปชิดซ้ายเมื่อกล่องกว้างกว่าตัว widget (เช่นหน้า preview) */
+    color: #fff; display: flex; align-items: center; justify-content: center;
+  }
+  #wrap { width: 100%; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+  #track { display: flex; width: max-content; will-change: transform; animation: marquee var(--dur, 22s) linear infinite; }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+  /* ?dir=right — เลื่อนกลับทาง (ใช้ animation-direction ไม่ต้องมี keyframes ชุดที่สอง) */
+  #track.rtl { animation-direction: reverse; }
+  #wrap:hover #track { animation-play-state: paused; }
+  .item {
+    flex: 0 0 auto; width: var(--cs, 120px); margin: 0 var(--gap, calc(var(--cs, 120px) * 0.11));
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  }
+  .item .pic { width: var(--cs, 120px); height: var(--cs, 120px); object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
+  .item .pic.emoji { display: flex; align-items: center; justify-content: center; font-size: calc(var(--cs, 120px) * 0.7); }
+  .item .txt {
+    margin-top: 4px; font-weight: 800; text-align: center; line-height: 1.1;
+    font-size: calc(var(--cs, 120px) * 0.2);
+    color: var(--tc, #fff);
+    -webkit-text-stroke: calc(var(--cs, 120px) * 0.018) #000;
+    paint-order: stroke fill;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    white-space: nowrap;
+  }
+  #empty { width: 100%; text-align: center; color: rgba(255,255,255,0.5); font-size: 15px; }
+
+  /* ================= ธีม (?template=) ================= */
+
+  /* neon — ชื่อของขวัญเรืองแสง มีขีดสีเน้นใต้การ์ดแต่ละใบ */
+  [data-tpl="neon"] .item {
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--accent, #fe2c55);
+    box-shadow: 0 6px 14px -8px var(--accent-glow, rgba(254,44,85,.55));
+  }
+  [data-tpl="neon"] .item .txt {
+    color: var(--textcolor-user, var(--accent, #fe2c55));
+    -webkit-text-stroke: 0;
+    text-transform: uppercase; letter-spacing: .05em;
+    text-shadow: 0 0 10px var(--accent-glow, rgba(254,44,85,.55)), 0 0 24px var(--accent-weak, rgba(254,44,85,.22));
+  }
+  [data-tpl="neon"] .item .pic { filter: drop-shadow(0 0 10px var(--accent-weak, rgba(254,44,85,.22))); }
+
+  /* glass — แต่ละชิ้นอยู่ในการ์ดกระจกมนๆ */
+  [data-tpl="glass"] .item {
+    background: var(--pan-bg, rgba(255,255,255,.13));
+    border: var(--pan-border, 1px solid rgba(255,255,255,.28));
+    border-radius: var(--pan-radius, 18px);
+    box-shadow: var(--pan-shadow, 0 8px 30px rgba(0,0,0,.28));
+    backdrop-filter: var(--pan-blur);
+    -webkit-backdrop-filter: var(--pan-blur);
+    padding: 8px 8px 10px;
+  }
+  [data-tpl="glass"] .item .txt { -webkit-text-stroke: 0; color: #fff; font-weight: 650; }
+
+  /* arcade — การ์ดเหลี่ยมขอบหนา เงาแข็ง ชื่อเป็นแถบพื้นทึบ */
+  [data-tpl="arcade"] .item {
+    background: var(--pan-bg, #12121c);
+    border: var(--pan-border, 3px solid #fff);
+    border-radius: var(--pan-radius, 0);
+    box-shadow: var(--pan-shadow, 5px 5px 0 rgba(0,0,0,.85));
+    padding: 6px 6px 0;
+  }
+  [data-tpl="arcade"] .item .txt {
+    margin-top: 6px;
+    width: calc(100% + 12px); margin-left: -6px;
+    background: var(--accent, #fe2c55);
+    color: #fff;
+    padding: 3px 0;
+    text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+    overflow: hidden; text-overflow: ellipsis;
+  }
+</style>
+</head>
+<body>
+<div id="wrap"><div id="track"></div></div>
+<script src="common/widget.js"></script>
+<script>
+(function () {
+  // ?gap= ระยะห่างระหว่างชิ้น (px), ?dir=right เลื่อนกลับทาง
+  (function () {
+    var P2 = new URLSearchParams(location.search);
+    var g = Number(P2.get('gap'));
+    if (isFinite(g) && g >= 0) document.documentElement.style.setProperty('--gap', Math.min(120, g) + 'px');
+    if (P2.get('dir') === 'right') document.addEventListener('DOMContentLoaded', function () {
+      document.getElementById('track').classList.add('rtl');
+    });
+  })();
+  var P = TikkiesWidget.params;
+  var track = document.getElementById('track');
+  var CS = Math.max(50, Number(P.get('size')) || 0);
+  var PXPS = Number(P.get('speed')) || 0;   // ความเร็ว px/วินาที จาก URL (มาก=เร็ว)
+
+  function firstChar(s) { s = String(s || '?').trim(); var m = s.replace(/[ัำ-ฺ็-๎]/g, ''); return (m[0] || s[0] || '🎁'); }
+
+  function itemEl(it) {
+    var d = document.createElement('div'); d.className = 'item';
+    if (it.color) d.style.setProperty('--tc', it.color);
+    var pic;
+    if (it.image) { pic = document.createElement('img'); pic.className = 'pic'; pic.src = it.image; pic.alt = '';
+      pic.onerror = function () { var e = document.createElement('div'); e.className = 'pic emoji'; e.textContent = '🎁'; d.replaceChild(e, pic); }; }
+    else { pic = document.createElement('div'); pic.className = 'pic emoji'; pic.textContent = '🎁'; }
+    d.appendChild(pic);
+    if (it.text) { var t = document.createElement('div'); t.className = 'txt'; t.textContent = it.text; d.appendChild(t); }
+    return d;
+  }
+
+  function render(conf) {
+    conf = conf || {};
+    var items = (conf.items || []).filter(function (x) { return x && (x.text || x.image); });
+    // ความเร็ว = px/วินาที (มาก=เร็ว); คิด duration จากความยาวแถบ → ความเร็วคงที่ไม่ว่ากี่ช่อง
+    var pxps = Math.max(10, PXPS || Number(conf.speedSec) || 80);
+    var cs = CS || Math.max(50, Number(conf.cardSize) || 120);
+    document.documentElement.style.setProperty('--cs', cs + 'px');
+    track.innerHTML = '';
+    if (!items.length) { track.innerHTML = '<div id="empty">ยังไม่มีรายการ — ตั้งค่าในแท็บ "ตัวเลื่อน"</div>'; return; }
+    // ทำ 2 ชุดต่อกัน เพื่อวน translateX -50% แบบไร้รอยต่อ
+    for (var rep = 0; rep < 2; rep++) items.forEach(function (it) { track.appendChild(itemEl(it)); });
+    // วัดความกว้าง 1 ชุด แล้วตั้ง duration = ระยะ/ความเร็ว (เลื่อน px/วินาทีคงที่)
+    requestAnimationFrame(function () {
+      var setW = track.scrollWidth / 2;
+      var dur = setW > 0 ? (setW / pxps) : 20;
+      document.documentElement.style.setProperty('--dur', dur.toFixed(2) + 's');
+    });
+  }
+
+  TikkiesWidget.connect({
+    onEvent: function (event, data) {
+      if (event === 'snapshot') { var c = data && data.settings && data.settings.carousel; if (c) render(c); }
+      else if (event === 'carousel') render(data);
+    }
+  });
+})();
+</script>
+</body>
+</html>

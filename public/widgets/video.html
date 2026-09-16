@@ -1,0 +1,224 @@
+<!--
+  Tikkies Tools — Video Widget (เล่นคลิปสั้นกลางจอเมื่อ Action ทำงาน)
+
+  วิธีใช้:
+    เพิ่ม http://localhost:21213/widgets/video.html เป็น แหล่งภาพชนิดเว็บในโปรแกรมไลฟ์
+    (พื้นหลังโปร่งใส แนะนำขนาดเท่าความละเอียดฉาก เช่น 1920 x 1080 — คลิปจะอยู่กลางกรอบ)
+
+  ตั้งคลิปที่ไหน: แท็บ Actions → เพิ่มการกระทำ "เล่นวิดีโอ" แล้วเลือกไฟล์
+  ไฟล์จะถูกคัดลอกเข้าคลังของโปรแกรมแล้วเสิร์ฟผ่าน http ให้เอง (file:// เล่นในแหล่งภาพชนิดเว็บไม่ได้)
+
+  ทำไมต้องมีเพดานความยาว: คลิปยาวๆ บังฉากนานเกินไปและคิวจะบวมตอนของขวัญเข้ารัว
+  ค่าเริ่มต้นตัดที่ 10 วินาที (ตั้งเองได้ที่ ?maxsec=) — คลิปที่ยาวกว่านั้นจะเล่นแค่ช่วงต้น
+
+  พารามิเตอร์ (ต่อท้าย URL):
+    ?maxsec=10       เล่นคลิปละไม่เกินกี่วินาที (1-60, ค่าเริ่มต้น 10)
+    ?width=60        ความกว้างคลิปเทียบกับกรอบ เป็น % (10-100, ค่าเริ่มต้น 60)
+    ?volume=100      ระดับเสียงเริ่มต้น 0-100 (ค่าเริ่มต้น 100; Action ตั้งของตัวเองทับได้)
+    ?pos=center      ตำแหน่ง: center | top | bottom | left | right (ค่าเริ่มต้น center)
+    ?queue=1         คลิปที่มาระหว่างเล่นอยู่ให้ต่อคิว (ค่าเริ่มต้น) — ?queue=0 = ข้ามไปเลย
+    ?maxqueue=5      คิวยาวสุดกี่คลิป เกินนี้ทิ้งของเก่าสุด (1-20, ค่าเริ่มต้น 5)
+    ?loopfit=1       ยืดคลิปสั้นให้ครบ maxsec ด้วยการวนซ้ำ (ค่าเริ่มต้น 0 = เล่นจบก็จบ)
+    ?debug=1         ปุ่มทดสอบ
+    ?template=default|neon|glass|arcade|plain  หน้าตาของ widget
+    ?host= / ?port=  กรณีเปิดจากเครื่อง/พอร์ตอื่น (ค่าเริ่มต้น localhost:21213)
+
+  เรื่องเสียง: แหล่งภาพชนิดเว็บของโปรแกรมไลฟ์เล่นเสียงอัตโนมัติได้ แต่เบราว์เซอร์ทั่วไปบล็อก
+  ถ้าเปิดหน้านี้ในเบราว์เซอร์เพื่อดูตัวอย่างแล้วเงียบ ให้คลิกที่หน้าเว็บหนึ่งครั้งก่อน
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Video</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<link rel="stylesheet" href="common/templates.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; /* สำหรับใช้เป็นแหล่งภาพชนิดเว็บในโปรแกรมไลฟ์ */
+    width: 100%; height: 100%;
+    overflow: hidden;
+    /* widget นี้ไม่มีตัวอักษรเลย จึงไม่อ้างตัวแปรฟอนต์/สีตัวอักษร
+       ถ้าอ้างไว้ หน้าตั้งค่าจะโชว์ตัวเลือก "ฟอนต์/สีตัวอักษร/ขอบตัวอักษร" ให้กดแล้วไม่มีอะไรเกิดขึ้น
+       (ตัวตรวจ scripts/check-widget-options.js อ่านจากตัวแปรที่ใช้จริงในไฟล์) */
+  }
+  body { display: flex; align-items: center; justify-content: center; }
+  body[data-pos="top"]    { align-items: flex-start; }
+  body[data-pos="bottom"] { align-items: flex-end; }
+  body[data-pos="left"]   { justify-content: flex-start; }
+  body[data-pos="right"]  { justify-content: flex-end; }
+
+  /* กล่องคลิป — ตามธีมเหมือน widget อื่น ธีม "เรียบ" จะไม่มีกรอบเลย */
+  #box {
+    display: none;                       /* ไม่มีคลิปเล่นอยู่ = ไม่บังฉากเลย */
+    max-width: 100%; max-height: 100%;
+    background: var(--pan-bg);
+    border: var(--pan-border);
+    border-radius: var(--pan-radius);
+    box-shadow: var(--pan-shadow);
+    -webkit-backdrop-filter: var(--pan-blur);
+    backdrop-filter: var(--pan-blur);
+    /* ไม่ใช้ --pan-pad เพราะระยะขอบในของกล่องข้อความไม่เข้ากับคลิปที่เต็มกล่องอยู่แล้ว
+       ธีมที่มีกรอบจะเว้นให้พอเห็นกรอบ ธีม "เรียบ" ไม่มีกรอบก็ไม่ต้องเว้น */
+    padding: 0;
+    overflow: hidden;
+    line-height: 0;                      /* กัน inline-gap ใต้ <video> ทำให้กล่องสูงเกิน */
+  }
+  #box.on { display: block; }
+  #vid {
+    display: block;
+    width: 100%; height: auto;
+    max-height: 100%;
+    border-radius: calc(var(--pan-radius) * 0.7);
+    object-fit: contain;
+  }
+
+  /* โผล่/หายแบบนุ่ม — ?anim=0 ปิดได้จาก look.js เหมือน widget อื่น */
+  #box.on { animation: popIn .28s cubic-bezier(.34,1.56,.64,1) both; }
+  #box.out { animation: popOut .22s ease both; }
+  @keyframes popIn  { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+  @keyframes popOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.96); } }
+
+  #testBtn {
+    position: fixed; left: 8px; bottom: 8px; z-index: 9;
+    background: #1c2130; color: #fff; border: 1px solid #2b3348;
+    border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 12px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div id="box"><video id="vid" playsinline></video></div>
+<script src="common/widget.js"></script>
+<script>
+(function () {
+  var P = TikkiesWidget.params;
+  // อ่านตัวเลขจาก URL — ต้องเช็ค "ไม่ได้ตั้งค่า" แยกจาก "ตั้งเป็น 0"
+  // Number(null) และ Number('') คืน 0 ซึ่งเป็นตัวเลขที่ถูกต้อง ถ้าเช็คแค่ isFinite
+  // พารามิเตอร์ที่ไม่ได้ใส่จะกลายเป็น 0 หมด (เสียงเงียบ ความยาวเหลือ 1 วิ ความกว้าง 10%)
+  var num = function (key, def, lo, hi) {
+    var raw = P.get(key);
+    if (raw === null || String(raw).trim() === '') return def;
+    var v = Number(raw);
+    if (!isFinite(v)) return def;
+    return Math.min(hi, Math.max(lo, v));
+  };
+
+  var MAX_SEC = num('maxsec', 10, 1, 60);
+  var MAX_QUEUE = num('maxqueue', 5, 1, 20);
+  var QUEUE_ON = P.get('queue') !== '0';
+  var LOOP_FIT = P.get('loopfit') === '1';
+  var BASE_VOL = num('volume', 100, 0, 100) / 100;
+
+  var pos = String(P.get('pos') || 'center').toLowerCase();
+  if (['center', 'top', 'bottom', 'left', 'right'].indexOf(pos) < 0) pos = 'center';
+  document.body.dataset.pos = pos;
+
+  var box = document.getElementById('box');
+  var vid = document.getElementById('vid');
+  box.style.width = num('width', 60, 10, 100) + '%';
+
+  var queue = [];
+  var playing = false;
+  var stopTimer = null;
+
+  function clearStopTimer() { if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; } }
+
+  function finish() {
+    clearStopTimer();
+    if (!playing) return;
+    playing = false;
+    // หยุดโหลดต่อด้วย ไม่ใช่แค่ pause — คลิปที่ยังดาวน์โหลดค้างจะกินเน็ต/แรมต่อทั้งที่ไม่ได้ดูแล้ว
+    try { vid.pause(); } catch (_) {}
+    vid.removeAttribute('src');
+    try { vid.load(); } catch (_) {}
+    box.classList.remove('on');
+    box.classList.add('out');
+    setTimeout(function () {
+      box.classList.remove('out');
+      next();
+    }, 220);
+  }
+
+  function next() {
+    if (playing) return;
+    var item = queue.shift();
+    if (!item) return;
+    playing = true;
+
+    vid.src = item.url;
+    vid.loop = !!LOOP_FIT;
+    vid.volume = item.volume;
+    vid.muted = item.volume <= 0;
+    box.classList.remove('out');
+    box.classList.add('on');
+
+    // เพดานความยาวต้องตั้งจากตอน "เริ่มเล่นจริง" ไม่ใช่ตอนสั่งเล่น
+    // ไฟล์ใหญ่ใช้เวลาโหลดก่อนภาพแรกจะขึ้น ถ้าจับเวลาตั้งแต่สั่ง คลิปจะโดนตัดตั้งแต่ยังไม่ทันเห็น
+    var armed = false;
+    var arm = function () {
+      if (armed) return;
+      armed = true;
+      clearStopTimer();
+      stopTimer = setTimeout(finish, item.maxSec * 1000);
+    };
+    vid.onplaying = arm;
+    vid.onended = function () { if (!vid.loop) finish(); };
+    // เล่นไม่ได้ (ไฟล์หาย/ฟอร์แมตไม่รองรับ) ต้องไปคลิปถัดไป ไม่ใช่ค้างคิวทั้งแถว
+    vid.onerror = function () { finish(); };
+
+    var p = vid.play();
+    if (p && p.catch) {
+      p.catch(function () {
+        // เบราว์เซอร์บล็อกเสียงอัตโนมัติ — ลองใหม่แบบปิดเสียง ดีกว่าไม่เห็นคลิปเลย
+        // (ในแหล่งภาพชนิดเว็บของโปรแกรมไลฟ์ไม่เจอเคสนี้ เจอเฉพาะตอนเปิดดูในเบราว์เซอร์)
+        vid.muted = true;
+        var again = vid.play();
+        if (again && again.catch) again.catch(function () { finish(); });
+      });
+    }
+    // กันคลิปที่ไม่ยอมเริ่มเล่นเลย (เช่นไฟล์เสีย) ค้างคิวไว้ตลอดกาล
+    setTimeout(function () { if (playing && !armed) arm(); }, 3000);
+  }
+
+  function enqueue(d) {
+    var url = TikkiesWidget.safeUrl(d && d.url);
+    if (!url) return;   // safeUrl ก่อนเสมอ — ค่านี้เดินทางผ่าน WebSocket มาถึงหน้าเว็บได้
+    var vol = d.volume === undefined || d.volume === null ? BASE_VOL : Number(d.volume);
+    if (!isFinite(vol)) vol = BASE_VOL;
+    var sec = Number(d.maxSec);
+    // Action ตั้งสั้นกว่าเพดานของ widget ได้ แต่ตั้งยาวกว่าไม่ได้ — เพดานเป็นของเจ้าของฉาก
+    if (!isFinite(sec) || sec <= 0) sec = MAX_SEC;
+    var item = { url: url, volume: Math.min(1, Math.max(0, vol)), maxSec: Math.min(MAX_SEC, sec) };
+
+    if (playing && !QUEUE_ON) return;   // ?queue=0 = กำลังเล่นอยู่ก็ข้ามคลิปใหม่ไปเลย
+    queue.push(item);
+    // ของขวัญเข้ารัวทีหนึ่งอาจยิงหลายสิบคลิป — เก็บของใหม่ไว้ ทิ้งของเก่าสุด
+    // (ของใหม่ตรงกับสิ่งที่ผู้ชมเพิ่งทำ ผู้ชมจะเห็นแล้วเข้าใจว่าคลิปมาจากอะไร)
+    while (queue.length > MAX_QUEUE) queue.shift();
+    next();
+  }
+
+  TikkiesWidget.connect({
+    onEvent: function (event, data) {
+      if (event === 'video') enqueue(data);
+    }
+  });
+
+  if (P.get('debug') === '1') {
+    var b = document.createElement('button');
+    b.id = 'testBtn';
+    b.textContent = 'ทดสอบเล่นคลิป';
+    b.onclick = function () {
+      var u = window.prompt('URL คลิป (เช่น /media/xxxx.mp4)', vid.currentSrc || '');
+      if (u) enqueue({ url: u });
+    };
+    document.body.appendChild(b);
+  }
+})();
+</script>
+</body>
+</html>

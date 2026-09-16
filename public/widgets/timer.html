@@ -1,0 +1,235 @@
+<!--
+  Tikkies Tools — Timer Widget (นาฬิกาถอยหลัง Subathon สำหรับ แหล่งภาพชนิดเว็บของโปรแกรมไลฟ์)
+
+  วิธีใช้:
+    เพิ่ม http://localhost:21213/widgets/timer.html เป็น แหล่งภาพชนิดเว็บในโปรแกรมไลฟ์
+    (พื้นหลังโปร่งใส แนะนำขนาดกว้าง 360 สูง 140)
+
+  พารามิเตอร์ (ต่อท้าย URL):
+    ?size=72         ขนาดตัวเลขเวลา (px, ค่าเริ่มต้น 64)
+    ?host= / ?port=  กรณีเปิดจากเครื่อง/พอร์ตอื่น (ค่าเริ่มต้น localhost:21213)
+
+  ข้อมูล: ฟัง event 'timer' และตั้งค่าเริ่มต้นจาก snapshot.timer
+          เดินเวลาฝั่ง client เองทุกวินาที (กัน WebSocket ขาด) แล้ว sync ใหม่ทุก event
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Timer</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<link rel="stylesheet" href="common/templates.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: var(--tpl-font);
+    color: var(--tpl-text);
+    /* จัดกึ่งกลางเสมอ — ถ้า แหล่งภาพชนิดเว็บในโปรแกรมไลฟ์ ใหญ่กว่าตัวนาฬิกา จะไม่ไปกองมุมบนซ้าย */
+    display: flex; align-items: center; justify-content: center;
+  }
+  #box {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 14px 22px;
+    margin: 10px;
+    background: var(--pan-bg);
+    border: var(--pan-border);
+    border-radius: var(--pan-radius);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
+    backdrop-filter: var(--pan-blur);
+    -webkit-backdrop-filter: var(--pan-blur);
+    position: relative;
+  }
+  .label {
+    color: var(--tpl-dim, inherit);
+    font-size: 15px; font-weight: var(--tpl-weight);
+    text-transform: var(--tpl-caps);
+    letter-spacing: var(--tpl-track);
+    opacity: 0.9;
+    text-shadow: var(--tpl-shadow);
+  }
+  .time-wrap { display: flex; align-items: baseline; gap: 8px; position: relative; }
+  .time {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  }
+  .paused .time { opacity: 0.55; }
+  .pause-ico { font-size: 22px; opacity: 0.7; display: none; }
+  .paused .pause-ico { display: inline; }
+
+  /* เหลือน้อยกว่า 60 วิ: ตัวเลขแดงกะพริบ */
+  .danger .time { color: var(--danger, #ff4d5e); animation: blink 1s steps(2, start) infinite; }
+  @keyframes blink { 50% { opacity: 0.35; } }
+
+  /* "+N วิ" ลอยขึ้นแล้วจาง */
+  .float {
+    position: absolute;
+    right: -6px; top: -4px;
+    font-size: 18px; font-weight: 800;
+    color: var(--accent, #25f4ee);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    animation: floatUp 1.3s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translateY(6px); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-26px); }
+  }
+
+  /* ================= ธีม (?template=) ================= */
+
+  /* neon — ตัวเลขเรืองแสง กล่องขอบบางมี glow */
+  [data-tpl="neon"] #box {
+    box-shadow: var(--tpl-glow), inset 0 0 22px rgba(0, 0, 0, 0.6);
+    padding: 12px 26px;
+  }
+  [data-tpl="neon"] .time {
+    color: var(--accent, #25f4ee);
+    text-shadow: 0 0 10px var(--accent-glow, rgba(37, 244, 238, 0.55)),
+                 0 0 28px var(--accent-weak, rgba(37, 244, 238, 0.22));
+    letter-spacing: 3px;
+  }
+  [data-tpl="neon"] .label { color: var(--tpl-dim); text-shadow: var(--tpl-text-glow); }
+  [data-tpl="neon"] .danger .time { color: var(--danger, #ff4d5e); text-shadow: 0 0 12px rgba(255, 77, 94, 0.8); }
+
+  /* glass — กล่องแก้ว ตัวเลขขาวสะอาด มีเส้นคั่นบางใต้หัวข้อ */
+  [data-tpl="glass"] #box { padding: 16px 30px; }
+  [data-tpl="glass"] .label {
+    color: var(--tpl-dim);
+    padding-bottom: 6px; margin-bottom: 2px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    align-self: stretch; text-align: center;
+  }
+  [data-tpl="glass"] .time { color: #fff; font-weight: 300; letter-spacing: 2px; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.4); }
+
+  /* arcade — ตัวเลขแบบจอเกม แต่ละหลักอยู่ในบล็อกดำ */
+  [data-tpl="arcade"] #box { padding: 10px 16px 12px; }
+  [data-tpl="arcade"] .time {
+    color: var(--accent, #25f4ee);
+    background: #000;
+    border: 3px solid #fff;
+    padding: 6px 14px;
+    letter-spacing: 4px;
+    text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.9);
+  }
+  [data-tpl="arcade"] .label { color: #fff; font-size: 13px; }
+  [data-tpl="arcade"] .danger .time { animation: blink 0.6s steps(2, start) infinite; }
+  [data-tpl="arcade"] .float { color: var(--accent, #25f4ee); text-shadow: 2px 2px 0 #000; }
+</style>
+</head>
+<body>
+  <div id="box">
+    <div class="label" id="label">Timer</div>
+    <div class="time-wrap">
+      <span class="pause-ico">⏸</span>
+      <span class="time" id="time">00:00</span>
+    </div>
+  </div>
+
+  <script src="common/widget.js"></script>
+  <script>
+  (function () {
+    var params = TikkiesWidget.params;
+
+    var size = parseInt(params.get('size'), 10);
+    var timeEl = document.getElementById('time');
+    var labelEl = document.getElementById('label');
+    // ?label=ข้อความ ล็อกหัวข้อจาก URL (snapshot ไม่ทับ); ?label=0 ซ่อนหัวข้อ
+    var labelParam = params.get('label');
+    if (labelParam === '0') labelEl.style.display = 'none';
+    else if (labelParam) labelEl.textContent = labelParam;
+    var boxEl = document.getElementById('box');
+    // ?dangersec= เหลือกี่วินาทีถึงเปลี่ยนเป็นสีเตือน (0 = ไม่เตือน), ?dangercolor= สีเตือน
+    var DANGER_SEC = Number(params.get('dangersec'));
+    if (!isFinite(DANGER_SEC) || DANGER_SEC < 0) DANGER_SEC = 60;
+    var dc = String(params.get('dangercolor') || '').replace(/^#/, '');
+    if (/^[0-9a-f]{3}$|^[0-9a-f]{6}$/i.test(dc)) document.documentElement.style.setProperty('--danger', '#' + dc);
+    if (size > 0) timeEl.style.fontSize = size + 'px';
+
+    // สถานะ local สำหรับเดินเวลาเองทุกวินาที
+    var state = {
+      remaining: 0,     // วินาทีที่เหลือ (อ้างอิงจาก event ล่าสุด)
+      running: false,
+      baseAt: Date.now(), // เวลาเครื่องตอนได้ event ล่าสุด (ms)
+      enabled: true
+    };
+
+    // ?format=auto|hms|ms|h  รูปแบบเวลา (auto = โชว์ชั่วโมงเฉพาะตอนมี)
+    var timeFormat = params.get('format') || 'auto';
+    function fmtTime(totalSec) {
+      totalSec = Math.max(0, Math.floor(totalSec));
+      var h = Math.floor(totalSec / 3600);
+      var m = Math.floor((totalSec % 3600) / 60);
+      var s = totalSec % 60;
+      function p(n) { return (n < 10 ? '0' : '') + n; }
+      if (timeFormat === 'ms') return p(Math.floor(totalSec / 60)) + ':' + p(s);   // นาทีล้วน เช่น 125:30
+      if (timeFormat === 'h') return p(h) + ':' + p(m);                            // ชั่วโมง:นาที
+      if (timeFormat === 'hms') return p(h) + ':' + p(m) + ':' + p(s);             // โชว์ชั่วโมงเสมอ
+      return (h > 0 ? p(h) + ':' : '') + p(m) + ':' + p(s);
+    }
+
+    // เวลาที่เหลือ ณ ตอนนี้ (หัก elapsed ถ้ากำลังเดิน)
+    function currentRemaining() {
+      if (!state.running) return state.remaining;
+      var elapsed = (Date.now() - state.baseAt) / 1000;
+      return Math.max(0, state.remaining - elapsed);
+    }
+
+    function tick() {
+      var rem = currentRemaining();
+      timeEl.textContent = fmtTime(rem);
+      boxEl.classList.toggle('paused', !state.running);
+      boxEl.classList.toggle('danger', rem > 0 && rem < DANGER_SEC);
+    }
+
+    function onTimer(t) {
+      if (!t) return;
+      state.remaining = Math.max(0, Number(t.remainingSec) || 0);
+      state.running = !!t.running;
+      state.enabled = t.enabled !== false;
+      state.baseAt = Date.now();
+      // textContent ไม่ตีความ HTML อยู่แล้ว — ห้าม esc() ซ้ำ ไม่งั้น "Sub & Chill" จะโชว์เป็น "Sub &amp; Chill"
+      if (t.label && labelParam == null) labelEl.textContent = t.label;
+      // ซ่อนทั้งกล่องถ้า timer ปิดใช้งาน
+      boxEl.style.display = state.enabled ? '' : 'none';
+
+      // แสดง "+N วิ" เมื่อมีการเพิ่มเวลา
+      if (t.lastAdd && t.lastAdd.sec > 0) showFloat(t.lastAdd.sec);
+      tick();
+    }
+
+    var lastFloatKey = null;
+    function showFloat(sec) {
+      var f = document.createElement('div');
+      f.className = 'float';
+      f.textContent = '+' + sec + ' วิ';
+      boxEl.appendChild(f);
+      setTimeout(function () { f.remove(); }, 1400);
+    }
+
+    setInterval(tick, 1000);
+    tick();
+
+    TikkiesWidget.connect({
+      onEvent: function (event, data) {
+        if (event === 'snapshot') return onTimer(data && data.timer);
+        if (event === 'timer') return onTimer(data);
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!--
+  Tikkies Tools — Goal Widget (หลอดเป้าหมาย สำหรับ แหล่งภาพชนิดเว็บของโปรแกรมไลฟ์)
+
+  วิธีใช้:
+    เพิ่ม http://localhost:21213/widgets/goal.html เป็น แหล่งภาพชนิดเว็บในโปรแกรมไลฟ์
+    (พื้นหลังโปร่งใส แนะนำขนาดกว้าง 420 สูง 90 ต่อหลอด 1 หลอด)
+
+  พารามิเตอร์ (ต่อท้าย URL):
+    ?goal=likes|diamonds|followers  แสดงหลอดเดียวตามที่ระบุ
+                                    (ไม่ระบุ = แสดงทุกเป้าหมายที่เปิดใช้ ซ้อนแนวตั้ง)
+    ?template=default|neon|glass|arcade|plain  หน้าตาของ widget (ดู src/widgets/common/templates.css)
+    ?host= / ?port=                 กรณีเปิดจากเครื่อง/พอร์ตอื่น (ค่าเริ่มต้น localhost:21213)
+
+  ข้อมูล: ฟัง event 'goals' และตั้งค่าเริ่มต้นจาก snapshot.goals
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Goal</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<link rel="stylesheet" href="common/templates.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; /* สำหรับใช้เป็นแหล่งภาพชนิดเว็บในโปรแกรมไลฟ์ */
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: var(--tpl-font);
+  }
+
+  #goals {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 12px;
+    max-width: var(--tpl-width, 450px);
+  }
+
+  .goal {
+    background: var(--pan-bg);
+    border: var(--pan-border);
+    border-radius: var(--pan-radius);
+    box-shadow: var(--pan-shadow);
+    backdrop-filter: var(--pan-blur);
+    -webkit-backdrop-filter: var(--pan-blur);
+    padding: var(--pan-pad);
+    color: var(--tpl-text);
+  }
+
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 7px;
+    text-shadow: var(--tpl-shadow);
+  }
+  .label {
+    font-weight: var(--tpl-weight);
+    font-size: 15px;
+    text-transform: var(--tpl-caps);
+    letter-spacing: var(--tpl-track);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .right { flex: 0 0 auto; }
+  /* ป้ายบอกช่วงเวลา — เป้าหมายรายสัปดาห์/เดือนต้องบอกคนดูว่านับจากช่วงไหน */
+  .per {
+    display: none; flex: 0 0 auto;
+    margin-left: 7px; padding: 1px 7px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0;
+    text-transform: none; white-space: nowrap;
+    background: var(--accent-weak, rgba(255,255,255,.14));
+    color: var(--tpl-dim, rgba(236,236,241,.75));
+  }
+  .goal.has-period .per { display: inline-block; }
+  .head-left { display: flex; align-items: baseline; min-width: 0; }
+  .value {
+    font-weight: 600;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    color: var(--tpl-text);
+  }
+
+  /* ป้าย "สำเร็จ" — โผล่เมื่อครบเป้า */
+  .done-badge {
+    display: none;
+    color: #ffd766;
+    font-weight: 800;
+    font-size: 14px;
+    margin-right: 8px;
+  }
+  .goal.done .done-badge {
+    display: inline-block;
+    animation: badge-pop 0.5s ease;
+  }
+  @keyframes badge-pop {
+    0%   { opacity: 0; transform: scale(0.4); }
+    60%  { transform: scale(1.25); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* หลอดเป้าหมาย: โค้งมน สูง ~28px, fill ไล่สี + glow */
+  .bar {
+    position: relative;
+    height: var(--bar-h, 28px);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 8px rgba(254, 44, 85, 0.35), 0 0 16px rgba(37, 244, 238, 0.18);
+    overflow: hidden;
+  }
+  .fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0%;
+    border-radius: 14px;
+    background: linear-gradient(90deg, var(--accent, #fe2c55), var(--accent2, #25f4ee));
+    transition: width 0.6s ease;
+  }
+
+  /* ครบเป้า: หลอดกะพริบ glow */
+  .goal.done .bar {
+    animation: glow-blink 0.9s ease-in-out infinite alternate;
+  }
+  @keyframes glow-blink {
+    from { box-shadow: 0 0 8px rgba(254, 44, 85, 0.5),  0 0 14px rgba(37, 244, 238, 0.3); }
+    to   { box-shadow: 0 0 20px rgba(254, 44, 85, 0.95), 0 0 36px rgba(37, 244, 238, 0.75); }
+  }
+
+  /* ================= ธีม (?template=) ================= */
+
+  /* neon — หลอดบางลง ขอบเรืองแสง fill เป็นแท่งสว่างมี glow วิ่งตาม */
+  [data-tpl="neon"] .bar {
+    height: var(--bar-h, 22px);
+    border-radius: var(--tpl-fill-radius);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--accent-weak, rgba(254, 44, 85, 0.22));
+    box-shadow: var(--tpl-glow);
+  }
+  [data-tpl="neon"] .fill {
+    border-radius: var(--tpl-fill-radius);
+    background: linear-gradient(90deg, var(--accent, #fe2c55), var(--accent2, #25f4ee));
+    box-shadow: 0 0 12px var(--accent-glow, rgba(254, 44, 85, 0.55)), 0 0 26px var(--accent-weak, rgba(254, 44, 85, 0.22));
+  }
+  [data-tpl="neon"] .label,
+  [data-tpl="neon"] .value { text-shadow: var(--tpl-text-glow); }
+  [data-tpl="neon"] .goal.done .bar { animation: none; box-shadow: var(--tpl-glow-strong); }
+
+  /* glass — หลอดสูงขึ้น มนเต็ม fill ขาวโปร่งไล่ไปหาสีเน้น มีไฮไลต์บนหลอด */
+  [data-tpl="glass"] .bar {
+    height: var(--bar-h, 26px);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25);
+  }
+  [data-tpl="glass"] .fill {
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.85), var(--accent, #fe2c55));
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+  /* ไฮไลต์โค้งบนหลอด — ทำให้ดูเป็นแก้วจริง ไม่ใช่แค่แถบสีจาง */
+  [data-tpl="glass"] .fill::after {
+    content: ''; position: absolute; left: 6px; right: 6px; top: 3px; height: 7px;
+    border-radius: 999px; background: rgba(255, 255, 255, 0.4);
+  }
+  [data-tpl="glass"] .goal.done .bar { animation: none; box-shadow: var(--tpl-glow-strong); }
+  [data-tpl="glass"] .done-badge { color: #fff; }
+
+  /* arcade — หลอดเป็นบล็อกๆ เหมือน health bar เกมเก่า */
+  [data-tpl="arcade"] .bar {
+    height: var(--bar-h, 26px);
+    border-radius: 0;
+    background: #000;
+    border: 3px solid #fff;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85);
+  }
+  [data-tpl="arcade"] .fill {
+    border-radius: 0;
+    background: var(--accent, #fe2c55);
+    transition: width 0.25s steps(12, end); /* ขยับเป็นขั้นๆ ไม่ไหลลื่น — ให้อารมณ์ 8-bit */
+  }
+  /* เส้นดำคั่นเป็นช่องๆ ทับบนหลอด ให้ fill ดูเป็นบล็อกแยกกัน */
+  [data-tpl="arcade"] .bar::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg, transparent 0 12px, #000 12px 15px);
+  }
+  [data-tpl="arcade"] .value { font-size: 13px; }
+  [data-tpl="arcade"] .goal.done .bar { animation: arcade-blink 0.5s steps(1) infinite alternate; }
+  @keyframes arcade-blink {
+    from { border-color: #fff; }
+    to   { border-color: var(--accent, #fe2c55); }
+  }
+
+  /* plain — หลอดเป้าหมายยังต้องมีราง ไม่งั้นดูไม่ออกว่าคืบไปเท่าไหร่
+   * เอาออกแค่ป้ายเปอร์เซ็นต์ที่เป็นชิปพื้นสี ให้เหลือเป็นตัวเลขลอยๆ
+   * รางทำให้จางลงและบางลง พอเห็นว่าเป็นราง แต่ไม่เป็นกล่องทึบบังฉาก */
+  [data-tpl="plain"] .per { background: none; padding: 0; text-shadow: var(--tpl-shadow); }
+  /* รางต้องเห็นได้ทั้งบนฉากมืดและฉากสว่าง — ขาวจางๆ อย่างเดียวหายไปเลยบนฉากสว่าง
+   * ใช้พื้นดำจางคู่กับวงขาวบางรอบนอก: ฉากมืดเห็นวงขาว ฉากสว่างเห็นพื้นดำ */
+  [data-tpl="plain"] .bar {
+    background: rgba(0, 0, 0, 0.24);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45);
+  }
+</style>
+</head>
+<body>
+  <div id="goals"></div>
+
+  <script src="common/widget.js"></script>
+  <script>
+  (function () {
+    var params = TikkiesWidget.params;
+    var esc = TikkiesWidget.escapeHtml;
+    var fmt = TikkiesWidget.formatNumber;
+    var goalsEl = document.getElementById('goals');
+
+    var KEYS = ['likes', 'diamonds', 'followers'];
+    var DEFAULT_LABELS = {
+      likes: 'เป้าหมายหัวใจ ❤️',
+      diamonds: 'เป้าหมายเพชร 💎',
+      followers: 'ผู้ติดตามใหม่ ✨'
+    };
+
+    // ?goal=likes|diamonds|followers → แสดงตัวเดียว; ไม่ระบุ/ค่าเพี้ยน = ทุกตัวที่ enabled
+    var only = params.get('goal');
+    if (KEYS.indexOf(only) === -1) only = null;
+
+    // ป้ายบอกช่วงเวลา (?periodlabel=0 เพื่อซ่อน) — ชื่อช่วงต้องตรงกับที่ตั้งในโปรแกรม
+    var SHOW_PERIOD = params.get('periodlabel') !== '0';
+    var PERIOD_TEXT = {
+      today: 'วันนี้', week: 'สัปดาห์นี้', month: 'เดือนนี้', all: 'ตลอดกาล'
+    };
+    function periodText(p) {
+      if (!p || p === 'session') return '';
+      if (PERIOD_TEXT[p]) return PERIOD_TEXT[p];
+      var m = /^days:(\d+)$/.exec(p);
+      return m ? (m[1] + ' วันล่าสุด') : '';
+    }
+
+    // ?barheight= ความสูงหลอด, ?gap= ระยะห่างระหว่างหลอด, ?percent=1 โชว์ % แทน x/y
+    var barH = Number(params.get('barheight'));
+    if (isFinite(barH) && barH > 0) goalsEl.style.setProperty('--bar-h', Math.min(120, Math.max(6, barH)) + 'px');
+    var gGap = Number(params.get('gap'));
+    if (isFinite(gGap) && gGap >= 0) goalsEl.style.gap = Math.min(60, gGap) + 'px';
+    var asPercent = params.get('percent') === '1';
+    var showValue = params.get('value') !== '0';
+
+    // สร้าง skeleton ของทั้ง 3 หลอดล่วงหน้า (ซ่อนไว้ก่อน) — ลำดับคงที่เสมอ
+    var goalEls = {};
+    KEYS.forEach(function (key) {
+      var root = document.createElement('div');
+      root.className = 'goal';
+      root.style.display = 'none';
+      root.innerHTML =
+        '<div class="head">' +
+          '<span class="head-left"><span class="label"></span><span class="per"></span></span>' +
+          '<span class="right">' +
+            '<span class="done-badge">🎉 สำเร็จ!</span>' +
+            '<span class="value">0/0</span>' +
+          '</span>' +
+        '</div>' +
+        '<div class="bar"><div class="fill"></div></div>';
+      goalsEl.appendChild(root);
+      goalEls[key] = {
+        root: root,
+        labelEl: root.querySelector('.label'),
+        perEl: root.querySelector('.per'),
+        valueEl: root.querySelector('.value'),
+        fillEl: root.querySelector('.fill'),
+        shown: 0,      // ค่าที่กำลังแสดง (สำหรับ count-up)
+        target: 0,
+        animId: null
+      };
+    });
+
+    function setValueText(st, val) {
+      if (!showValue) { st.valueEl.textContent = ''; return; }
+      if (asPercent) {
+        var pc = st.target > 0 ? Math.min(999, Math.round((val / st.target) * 100)) : 0;
+        st.valueEl.textContent = pc + '%';
+        return;
+      }
+      st.valueEl.textContent = fmt(Math.round(val)) + '/' + fmt(st.target);
+    }
+
+    // นับตัวเลขขึ้นแบบ ease-out ~0.6s (เข้าจังหวะกับ transition ของแถบ fill)
+    function animateCount(st, to) {
+      var from = st.shown;
+      if (st.animId) { cancelAnimationFrame(st.animId); st.animId = null; }
+      if (from === to) { setValueText(st, to); return; }
+      var start = performance.now();
+      var dur = 600;
+      function step(now) {
+        var t = Math.min(1, (now - start) / dur);
+        var eased = 1 - Math.pow(1 - t, 3);
+        st.shown = from + (to - from) * eased;
+        setValueText(st, st.shown);
+        if (t < 1) {
+          st.animId = requestAnimationFrame(step);
+        } else {
+          st.shown = to;
+          st.animId = null;
+        }
+      }
+      st.animId = requestAnimationFrame(step);
+    }
+
+    function onGoals(g) {
+      if (!g) return;
+      KEYS.forEach(function (key) {
+        var st = goalEls[key];
+        var cfg = g[key];
+        var show = !!(cfg && cfg.enabled) && (!only || only === key);
+        st.root.style.display = show ? '' : 'none';
+        if (!show) return;
+
+        st.target = Math.max(0, Number(cfg.target) || 0);
+        var current = Math.max(0, Number(cfg.current) || 0);
+
+        // label มาจากการตั้งค่าของผู้ใช้ — escape กัน XSS
+        st.labelEl.innerHTML = esc(cfg.label || DEFAULT_LABELS[key]);
+        var pt = SHOW_PERIOD ? periodText(cfg.period) : '';
+        st.perEl.textContent = pt;
+        st.root.classList.toggle('has-period', !!pt);
+
+        // เกินเป้า = fill เต็ม 100% ค้างไว้
+        var pct = st.target > 0
+          ? Math.min(100, (current / st.target) * 100)
+          : (current > 0 ? 100 : 0);
+        st.fillEl.style.width = pct + '%';
+
+        st.root.classList.toggle('done', st.target > 0 && current >= st.target);
+        animateCount(st, current);
+      });
+    }
+
+    TikkiesWidget.connect({
+      onEvent: function (event, data) {
+        if (event === 'snapshot') return onGoals(data && data.goals);
+        if (event === 'goals') return onGoals(data);
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,489 @@
+<!--
+  Tikkies Tools — Chat Widget (แชท overlay สำหรับ แหล่งภาพชนิดเว็บของโปรแกรมไลฟ์)
+
+  วิธีใช้:
+    เพิ่ม http://localhost:21213/widgets/chat.html เป็น แหล่งภาพชนิดเว็บในโปรแกรมไลฟ์
+    (พื้นหลังโปร่งใส แนะนำขนาดกว้าง 400 สูง 600 ขึ้นไป)
+
+  พารามิเตอร์ (ต่อท้าย URL):
+    ?avatars=0|1      แสดง/ซ่อนรูปโปรไฟล์ (ค่าเริ่มต้นตาม settings.overlay.chatShowAvatars)
+    ?hidecmd=0|1      ซ่อนข้อความที่ขึ้นต้นด้วย '!' (ค่าเริ่มต้นตาม settings.overlay.chatHideCommands)
+    ?social=0|1       แถวประกาศ follow/share/subscribe (ค่าเริ่มต้น 1 = เปิด)
+    ?joins=0|1        แถวประกาศ member เข้าไลฟ์ (ค่าเริ่มต้น 0 = ปิด)
+    ?size=14          ขนาดฟอนต์ (px, ค่าเริ่มต้น 14)
+    ?fade=N           แถวจางหายหลัง N วินาที (0 = ไม่จาง, ค่าเริ่มต้น 0)
+    ?align=bottom|top ตำแหน่งแชทใหม่ (ค่าเริ่มต้น bottom = แชทใหม่ล่างสุดชิดล่างจอ)
+    ?host= / ?port=   กรณีเปิดจากเครื่อง/พอร์ตอื่น (ค่าเริ่มต้น localhost:21213)
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tikkies — Chat</title>
+<!-- ธีม + ตัวปรับหน้าตา: ต้องรันก่อน CSS จะได้ไม่เห็นของเดิมแวบหนึ่งก่อนสลับ -->
+<script src="common/look.js"></script>
+<link rel="stylesheet" href="common/templates.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; /* สำหรับใช้เป็นแหล่งภาพชนิดเว็บในโปรแกรมไลฟ์ */
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: var(--tpl-font);
+  }
+
+  /* คอลัมน์แชทเต็มจอ — ค่าเริ่มต้นชิดล่าง แถวใหม่อยู่ล่างสุด */
+  #chat {
+    position: fixed;
+    left: 0; right: 0; top: 0; bottom: 0;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 6px;
+    overflow: hidden;
+    font-size: 14px;
+  }
+  #chat.align-top { justify-content: flex-start; }
+
+  .row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55em;
+    max-width: 100%;
+    padding: 0.4em 0.65em;
+    border-radius: var(--row-radius, var(--pan-radius, 0.7em));
+    background: var(--pan-bg);   /* จางๆ ให้อ่านง่ายบนวิดีโอ แต่ยังโปร่ง */
+    border: var(--pan-border);
+    box-shadow: var(--pan-shadow);
+    backdrop-filter: var(--pan-blur);
+    -webkit-backdrop-filter: var(--pan-blur);
+    color: var(--tpl-text);
+    line-height: 1.45;
+    text-shadow: var(--tpl-shadow);
+    /* รองรับข้อความไทยยาว/URL/emoji ติดกันยาวๆ — ตัดขึ้นบรรทัดใหม่เสมอ */
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    animation: slide-in-up 0.25s ease-out;
+    transition: opacity 1s ease;
+    flex: 0 0 auto;
+  }
+  #chat.align-top .row { animation-name: slide-in-down; }
+  .row.fade-out { opacity: 0; }
+
+  @keyframes slide-in-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes slide-in-down {
+    from { opacity: 0; transform: translateY(-14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* avatar กลม + ตัวอักษรสำรองเมื่อไม่มีรูป/รูปโหลดไม่ขึ้น */
+  .avatar {
+    position: relative;
+    width: 2em; height: 2em;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-weight: 700;
+    font-size: 0.95em;
+    color: #ffffff;
+    text-shadow: none;
+    user-select: none;
+  }
+  .avatar img {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  #chat.no-avatars .avatar { display: none; }
+
+  .body { min-width: 0; }
+  /* ความกว้างสูงสุดของแถว — ตั้งผ่านตัวเลือก "ความกว้างสูงสุด (px)" (look.js เซ็ต --tpl-width) */
+  .row { max-width: var(--tpl-width, 450px); }
+  .name {
+    color: var(--name-color, #c8c8d6);   /* ชื่อเล่นสีอ่อน */
+    font-weight: 700;
+    letter-spacing: var(--tpl-track, 0);
+    text-transform: var(--tpl-caps, none);
+    margin-right: 0.35em;
+  }
+  .badges { margin-right: 0.3em; }
+  .msg { color: var(--msg-color, var(--tpl-text, #ffffff)); }
+
+  /* แถวประกาศ follow/share/subscribe/member — สีรอง */
+  .row.social {
+    font-size: 0.92em;
+    background: var(--pan-bg);
+    opacity: .92;
+  }
+  .row.social .name, .row.social .msg { color: #25f4ee; }
+
+  /* แถวของขวัญ — พื้นไล่สี accent (ตั้งจาก JS ตาม settings.overlay.accentColor) */
+  .row.gift { border-radius: var(--row-radius, var(--pan-radius, 0.7em)); }
+  /* แถบขีดหน้าแถว: ใช้สีเน้นได้ทุกธีม ไม่ใช่เฉพาะนีออน */
+  .row { border-left: var(--row-accent-bar, 0) solid var(--accent, #fe2c55); }
+  .row.gift .name { color: #ffffff; }
+  .row.gift .msg { font-weight: 600; }
+  .gift-img {
+    width: 2.2em; height: 2.2em;
+    flex: 0 0 auto;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+  .gift-emoji {
+    width: 2.2em; height: 2.2em;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4em;
+  }
+
+  /* ================= ธีม (?template=) ================= */
+
+  /* neon — แถบบางๆ ไม่มีกล่อง มีขีดเรืองแสงหน้าแถว ชื่อเป็นสีเน้น */
+  [data-tpl="neon"] .row {
+    --row-radius: 0;
+    background: rgba(6, 6, 12, 0.55);
+    border: 0;
+    border-left: 3px solid var(--accent, #fe2c55);
+    box-shadow: -1px 0 10px var(--accent-weak, rgba(254, 44, 85, 0.22));
+    padding: 0.35em 0.7em;
+  }
+  [data-tpl="neon"] .name {
+    color: var(--name-color, var(--accent, #fe2c55));
+    text-transform: var(--tpl-caps);
+    letter-spacing: var(--tpl-track);
+    text-shadow: 0 0 8px var(--accent-glow, rgba(254, 44, 85, 0.55));
+  }
+  [data-tpl="neon"] .row.social { border-left-color: #25f4ee; box-shadow: -1px 0 10px rgba(37, 244, 238, 0.3); }
+  [data-tpl="neon"] .row.social .name, [data-tpl="neon"] .row.social .msg { text-shadow: 0 0 8px rgba(37, 244, 238, 0.5); }
+  [data-tpl="neon"] .avatar { border: 1px solid var(--accent, #fe2c55); }
+
+  /* glass — บับเบิลกระจก มุมมนมาก ชื่ออยู่บรรทัดบน */
+  [data-tpl="glass"] .row {
+    --row-radius: 1.1em;
+    padding: 0.5em 0.85em;
+    align-items: center;
+  }
+  [data-tpl="glass"] .name { color: var(--name-color, rgba(255, 255, 255, 0.72)); font-weight: 650; }
+  [data-tpl="glass"] .avatar { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35); }
+  [data-tpl="glass"] .row.social .name, [data-tpl="glass"] .row.social .msg { color: #9ff4ef; }
+
+  /* arcade — กล่องเหลี่ยม ขอบหนา เงาแข็ง ชื่อเป็นแท็กพื้นทึบ */
+  [data-tpl="arcade"] .row {
+    --row-radius: 0;
+    background: #12121c;
+    border: 3px solid #fff;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85);
+    padding: 0.35em 0.55em;
+    align-items: center;
+  }
+  [data-tpl="arcade"] .name {
+    background: var(--accent, #fe2c55);
+    color: var(--name-color, #fff);
+    padding: 0.1em 0.4em;
+    margin-right: 0.45em;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+  }
+  [data-tpl="arcade"] .avatar { border-radius: 0; border: 2px solid #fff; }
+  [data-tpl="arcade"] .avatar img { border-radius: 0; }
+  [data-tpl="arcade"] .row.social { border-color: #25f4ee; }
+  [data-tpl="arcade"] .row.social .name { background: #25f4ee; color: #05202a; }
+</style>
+</head>
+<body>
+  <div id="chat"></div>
+
+  <script src="common/widget.js"></script>
+  <script>
+  (function () {
+    var params = TikkiesWidget.params;
+    var T = TikkiesWidget.T;   // ค่าเริ่มต้นตามภาษาที่ผู้ใช้ตั้งไว้ในโปรแกรม
+    var esc = TikkiesWidget.escapeHtml;
+    var phraseHtml = TikkiesWidget.phraseHtml;   // ข้อความที่ผู้ใช้ตั้งเองได้ (escape ให้แล้ว)
+
+    // แชทขึ้นชื่อผู้ชมให้ด้านหน้าอยู่แล้ว ถ้าผู้ใช้ใส่ {nickname} ในข้อความของตัวเองด้วย
+    // ชื่อจะโผล่สองครั้ง ("สายเปย์ตัวจริง คุณ สายเปย์ตัวจริง sent Rose")
+    // ตีความว่าใส่ {nickname} เอง = อยากคุมประโยคทั้งหมด จึงซ่อนชื่อที่ขึ้นอัตโนมัติให้
+    function nameSpan(tplKey, nick) {
+      var tpl = params.get(tplKey);
+      if (tpl && tpl.indexOf('{nickname}') >= 0) return '';
+      return '<span class="name">' + esc(nick) + '</span>';
+    }
+    var safeUrl = TikkiesWidget.safeUrl;
+    var fmt = TikkiesWidget.formatNumber;
+    var chatEl = document.getElementById('chat');
+
+    // ?maxrows= จำนวนแถวสูงสุดที่ค้างบนจอ (มากไป = กินแรงเครื่อง/บังจอ)
+    var MAX_ROWS = Number(params.get('maxrows'));
+    if (!isFinite(MAX_ROWS) || MAX_ROWS < 1) MAX_ROWS = 50;
+    MAX_ROWS = Math.min(200, Math.round(MAX_ROWS));
+
+    // ---- อ่านพารามิเตอร์จาก URL ----
+    // คืน true/false เมื่อระบุค่ามาชัดเจน, คืน null เมื่อไม่ได้ระบุ (ให้ snapshot ตัดสิน)
+    function boolParam(name) {
+      var v = params.get(name);
+      if (v == null) return null;
+      return !(v === '0' || v === 'false' || v === 'no');
+    }
+
+    var avatarsParam = boolParam('avatars'); // null = ใช้ค่าจาก snapshot
+    var hidecmdParam = boolParam('hidecmd'); // null = ใช้ค่าจาก snapshot
+    var socialOn = boolParam('social');
+    if (socialOn == null) socialOn = true;   // ค่าเริ่มต้น: เปิด
+    var joinsOn = boolParam('joins');
+    if (joinsOn == null) joinsOn = false;    // member ค่าเริ่มต้น: ปิด
+
+    var fadeSec = Number(params.get('fade'));
+    if (!isFinite(fadeSec) || fadeSec < 0) fadeSec = 0;
+
+    var fontSize = Number(params.get('size'));
+    if (!isFinite(fontSize) || fontSize <= 0) fontSize = 14;
+    fontSize = Math.min(72, Math.max(8, fontSize));
+    chatEl.style.fontSize = fontSize + 'px';
+
+    var alignTop = params.get('align') === 'top';
+    if (alignTop) chatEl.classList.add('align-top');
+
+    // ?gap= ระยะห่างระหว่างแถว (px)
+    var gap = Number(params.get('gap'));
+    if (isFinite(gap) && gap >= 0) chatEl.style.gap = Math.min(40, gap) + 'px';
+
+    // ความกว้างสูงสุดของแถวตั้งผ่านตัวเลือก "ความกว้างสูงสุด (px)" — look.js เซ็ต --tpl-width ให้แล้ว
+    // ที่นี่แค่จัดชิดด้านตาม ?side= (แยกอิสระจากความกว้าง จะตั้งอันเดียวหรือคู่กันก็ได้)
+    if (params.get('side') === 'right') chatEl.style.alignItems = 'flex-end';
+
+    // ?namecolor= / ?msgcolor= แยกสีชื่อกับสีข้อความได้ (ธีมคุมได้แค่สีรวม)
+    var nameColor = params.get('namecolor');
+    var msgColor = params.get('msgcolor');
+    function hx(v) { v = String(v || '').replace(/^#/, ''); return /^[0-9a-f]{3}$|^[0-9a-f]{6}$/i.test(v) ? '#' + v : null; }
+    if (hx(nameColor)) chatEl.style.setProperty('--name-color', hx(nameColor));
+    if (hx(msgColor)) chatEl.style.setProperty('--msg-color', hx(msgColor));
+
+    // ?gifts=0 ซ่อนแถวของขวัญ (บางคนโชว์ของขวัญที่ Alert Box อยู่แล้ว ไม่อยากซ้ำในแชท)
+    var giftsOn = boolParam('gifts');
+    if (giftsOn == null) giftsOn = true;
+
+    // ---- สถานะจากการตั้งค่า (อัปเดตจาก snapshot เมื่อเชื่อมต่อ WS สำเร็จ) ----
+    var showAvatars = avatarsParam != null ? avatarsParam : true;
+    var hideCommands = hidecmdParam != null ? hidecmdParam : false;
+    var accent = '#fe2c55';
+
+    function applyAvatars() {
+      chatEl.classList.toggle('no-avatars', !showAvatars);
+    }
+    applyAvatars();
+
+    // ---- เครื่องมือช่วย ----
+    function hexToRgb(hex) {
+      var m = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(String(hex || '').trim());
+      if (!m) return { r: 254, g: 44, b: 85 }; // #fe2c55
+      var h = m[1];
+      if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+      return {
+        r: parseInt(h.slice(0, 2), 16),
+        g: parseInt(h.slice(2, 4), 16),
+        b: parseInt(h.slice(4, 6), 16)
+      };
+    }
+    function rgba(hex, a) {
+      var c = hexToRgb(hex);
+      return 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',' + a + ')';
+    }
+
+    // hash ชื่อ → hue สำหรับวงกลม avatar สำรอง
+    function hashHue(s) {
+      s = String(s || '');
+      var h = 0;
+      for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+      return h % 360;
+    }
+    function firstLetter(s) {
+      s = String(s || '').trim();
+      if (!s) return '?';
+      var cp = s.codePointAt(0);
+      return String.fromCodePoint(cp).toUpperCase();
+    }
+
+    function avatarHtml(d) {
+      var uid = d.uniqueId || d.nickname || '';
+      var hue = hashHue(uid);
+      var letter = esc(firstLetter(d.nickname || d.uniqueId));
+      var img = '';
+      // safeUrl ก่อนเสมอ — รูปโปรไฟล์มาจากผู้ชม ถ้า scheme แปลก (beacon/IP leak) ให้ทิ้งไปใช้อักษรแทน
+      var avUrl = safeUrl(d.profilePictureUrl);
+      if (avUrl) {
+        // ถ้ารูปโหลดไม่ขึ้นให้ลบทิ้ง เหลือวงกลมสี + อักษรแรกด้านหลัง
+        img = '<img src="' + esc(avUrl) + '" alt="" onerror="this.remove()">';
+      }
+      return '<span class="avatar" style="background:hsl(' + hue + ',60%,45%)">' + letter + img + '</span>';
+    }
+
+    function badgesHtml(d) {
+      var b = '';
+      if (d.isModerator) b += '🛡️';
+      if (d.isSubscriber) b += '⭐';
+      if (Number(d.followRole) >= 1) b += '❤️';
+      return b ? '<span class="badges">' + b + '</span>' : '';
+    }
+
+    // ---- เพิ่ม/ลบแถว ----
+    function addRow(row) {
+      if (alignTop) {
+        chatEl.insertBefore(row, chatEl.firstChild);
+        while (chatEl.children.length > MAX_ROWS) chatEl.removeChild(chatEl.lastChild);
+      } else {
+        chatEl.appendChild(row);
+        while (chatEl.children.length > MAX_ROWS) chatEl.removeChild(chatEl.firstChild);
+      }
+      if (fadeSec > 0) {
+        setTimeout(function () {
+          row.classList.add('fade-out');
+          setTimeout(function () {
+            if (row.parentNode) row.parentNode.removeChild(row);
+          }, 1100); // รอ transition opacity 1s จบก่อนค่อยลบออกจาก DOM
+        }, fadeSec * 1000);
+      }
+    }
+
+    function makeRow(className, html) {
+      var row = document.createElement('div');
+      row.className = 'row ' + className;
+      row.innerHTML = html;
+      return row;
+    }
+
+    // ---- ตัวจัดการ event ----
+    function onChat(d) {
+      if (!d) return;
+      var comment = String(d.comment == null ? '' : d.comment).trim();
+      if (!comment) return; // ข้ามแชทที่ไม่มีข้อความ (สติกเกอร์/emote ของ TikTok ส่งมาเป็น chat ว่าง)
+      if (hideCommands && comment.charAt(0) === '!') return;
+      var html =
+        avatarHtml(d) +
+        '<div class="body">' +
+          '<span class="name">' + esc(d.nickname || d.uniqueId || '') + '</span>' +
+          badgesHtml(d) +
+          '<span class="msg">' + esc(comment) + '</span>' +
+        '</div>';
+      addRow(makeRow('chat', html));
+    }
+
+    function onGift(d) {
+      // นับ/แสดงเฉพาะเมื่อจบ streak เท่านั้น (ตามสัญญากลาง)
+      if (!d || d.repeatEnd !== true) return;
+      var repeat = Number(d.repeatCount) || 1;
+      var total = Number(d.diamondTotal);
+      if (!isFinite(total) || total <= 0) total = (Number(d.diamondCount) || 0) * repeat;
+
+      // safeUrl ก่อนเสมอ — รูปของขวัญมาจาก event ผู้ชม/ช่อง simulate ไม่จำกัดปลายทางจะกลายเป็น beacon
+      var giftUrl = safeUrl(d.giftPictureUrl);
+      var img = giftUrl
+        ? '<img class="gift-img" src="' + esc(giftUrl) + '" alt="" onerror="this.remove()">'
+        : '<span class="gift-emoji">🎁</span>';
+
+      var html =
+        img +
+        '<div class="body">' +
+          nameSpan('gifttext', d.nickname || d.uniqueId || '') +
+          // ข้อความตั้งเองได้ (?gifttext=) — ใส่ลง innerHTML จึงต้องใช้ phraseHtml
+          // ที่ escape ทั้งตัวข้อความและค่าที่มาจากผู้ชม
+          '<span class="msg">' + phraseHtml(params.get('gifttext'), T('ส่ง {gift} x{count} 💎{diamonds}', 'sent {gift} x{count} 💎{diamonds}'), {
+            nickname: d.nickname || d.uniqueId || '',
+            handle: d.uniqueId ? '@' + d.uniqueId : '',
+            gift: d.giftName || T('ของขวัญ', 'a gift'),
+            count: repeat,
+            diamonds: fmt(total)
+          }) + '</span>' +
+        '</div>';
+
+      var row = makeRow('gift', html);
+      // พื้นไล่สี accent จาก settings.overlay.accentColor
+      // ธีม "เรียบ" ไม่มีพื้นหลังเลย ต้องไม่ตั้งตรงนี้ — style ตรงตัวชนะ CSS ของธีมเสมอ
+      // ถ้าตั้งแล้วค่อยไปทับด้วย !important จะกลายเป็นสองที่ต้องแก้ทุกครั้งที่เพิ่มธีม
+      if (document.documentElement.dataset.tpl !== 'plain') {
+        row.style.background = 'linear-gradient(90deg, ' + rgba(accent, 0.9) + ', ' + rgba(accent, 0.18) + ')';
+      }
+      addRow(row);
+    }
+
+    function onSocial(event, d) {
+      if (!socialOn) return;
+      if (event === 'member' && !joinsOn) return;
+      if (!d) return;
+
+      var m = Number(d.subMonth);
+      var vars = {
+        nickname: d.nickname || d.uniqueId || '',
+        handle: d.uniqueId ? '@' + d.uniqueId : '',
+        month: isFinite(m) && m > 0 ? m : 1
+      };
+      var text;
+      if (event === 'follow') text = phraseHtml(params.get('followtext'), T('กดติดตามแล้ว ❤️', 'just followed ❤️'), vars);
+      else if (event === 'share') text = phraseHtml(params.get('sharetext'), T('แชร์ไลฟ์นี้ 📤', 'shared this live 📤'), vars);
+      else if (event === 'subscribe') {
+        // เดือนที่เท่าไหร่ต่อท้ายเฉพาะตอนที่ TikTok ส่งมาจริง และเฉพาะข้อความเริ่มต้น
+        // ถ้าผู้ใช้ตั้งข้อความเอง ให้เขาคุมเองผ่าน {month} จะได้ไม่มีวงเล็บโผล่มาโดยไม่ได้ขอ
+        text = phraseHtml(params.get('subtext'),
+          T('สมัครสมาชิกแล้ว ⭐', 'subscribed ⭐') +
+          (isFinite(m) && m > 0 ? T(' (เดือนที่ {month})', ' (month {month})') : ''), vars);
+      } else if (event === 'member') text = phraseHtml(params.get('jointext'), T('เข้ามาในไลฟ์ 👋', 'joined the live 👋'), vars);
+      else return;
+
+      // คีย์ของข้อความแถวนี้ ใช้ตัดสินว่าจะซ่อนชื่อที่ขึ้นอัตโนมัติไหม
+      var tplKey = event === 'follow' ? 'followtext'
+        : event === 'share' ? 'sharetext'
+        : event === 'subscribe' ? 'subtext' : 'jointext';
+      var html =
+        '<div class="body">' +
+          nameSpan(tplKey, d.nickname || d.uniqueId || '') +
+          '<span class="msg">' + text + '</span>' +
+        '</div>';
+      addRow(makeRow('social', html));
+    }
+
+    // ---- เชื่อมต่อ WS ----
+    TikkiesWidget.connect({
+      onEvent: function (event, data) {
+        if (event === 'snapshot') {
+          // ตั้งค่าเริ่มต้นจาก snapshot เมื่อเชื่อมต่อสำเร็จ (URL param ชนะเสมอ)
+          var ov = data && data.settings && data.settings.overlay;
+          if (ov) {
+            if (avatarsParam == null) {
+              showAvatars = ov.chatShowAvatars !== false;
+              applyAvatars();
+            }
+            if (hidecmdParam == null) hideCommands = ov.chatHideCommands === true;
+            if (ov.accentColor && /^#?[0-9a-fA-F]{3,6}$/.test(String(ov.accentColor).trim())) {
+              accent = ov.accentColor;
+            }
+            // ?font= ใน URL ชนะค่าจากการตั้งค่ากลาง (look.js เซ็ต --tpl-font ไว้ก่อนแล้ว)
+            if (ov.font && !params.get('font')) {
+              document.body.style.fontFamily =
+                ov.font + ", -apple-system, 'Helvetica Neue', 'Thonburi', sans-serif";
+            }
+          }
+          return;
+        }
+        if (event === 'chat') return onChat(data);
+        if (event === 'gift') return giftsOn ? onGift(data) : undefined;
+        if (event === 'follow' || event === 'share' || event === 'subscribe' || event === 'member') {
+          return onSocial(event, data);
+        }
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

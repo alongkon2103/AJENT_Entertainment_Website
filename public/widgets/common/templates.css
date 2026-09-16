@@ -1,0 +1,172 @@
+/* Tikkies Tools — ธีม (template) กลางของทุก widget
+ *
+ * ใช้ยังไง: ใส่ ?template=neon|glass|arcade|plain ต่อท้าย URL ของ widget (ไม่ใส่ = default)
+ * สคริปต์เล็กๆ ใน <head> ของแต่ละ widget จะเซ็ต data-tpl ที่ <html> ให้ก่อนวาดหน้าจอ
+ * (เซ็ตใน head เพื่อไม่ให้เห็นธีม default แวบหนึ่งก่อนสลับ)
+ *
+ * ไฟล์นี้เก็บเฉพาะ "โทน" ที่ใช้ร่วมกันทุก widget เป็น CSS variable — widget แต่ละตัว
+ * เอาตัวแปรพวกนี้ไปใช้กับกล่อง/ตัวอักษรของตัวเอง แล้วค่อยเพิ่มกฎเฉพาะตัวที่ต่างกันจริงๆ
+ * (เช่น หลอดเป้าหมายแบบขีดๆ ของ arcade) ไว้ในไฟล์ widget นั้นเอง
+ *
+ * โทนของแต่ละธีม:
+ *   default — TikTok dark: กล่องดำโปร่ง มุมมน อ่านง่าย เป็นกลาง
+ *   neon    — ไซเบอร์: ขอบเรืองแสงสีเน้น ตัวอักษรมี glow ตัวพิมพ์ใหญ่เว้นระยะ
+ *   glass   — กระจกฝ้า: เบลอพื้นหลัง ขาวโปร่ง มุมมนมาก เงานุ่ม ดูสะอาด
+ *   arcade  — เกมพิกเซล: ขอบหนาทึบ ไม่มีมุมมน เงาแข็งแบบ 8-bit ฟอนต์ monospace
+ *   plain   — เรียบ: ไม่มีพื้นหลัง ไม่มีขอบ ไม่มีเงากล่อง เหลือแค่ตัวอักษรกับรูป
+ */
+
+:root {
+  /* กล่อง/พาเนล */
+  --pan-bg: rgba(18, 18, 22, 0.55);
+  --pan-bg-strong: rgba(18, 18, 22, 0.78);
+  --pan-border: 0 solid transparent;
+  --pan-radius: 14px;
+  --pan-shadow: none;
+  --pan-blur: none;
+  --pan-pad: 10px 14px 12px;
+
+  /* ตัวอักษร */
+  --tpl-font: -apple-system, 'Helvetica Neue', 'Thonburi', sans-serif;
+  --tpl-text: #ececf1;
+  --tpl-dim: rgba(236, 236, 241, 0.6);
+  --tpl-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  --tpl-caps: none;      /* text-transform ของหัวข้อ */
+  --tpl-track: 0;        /* letter-spacing ของหัวข้อ */
+  --tpl-weight: 700;
+
+  /* เอฟเฟกต์ที่ใช้ซ้ำ */
+  --tpl-glow: none;              /* glow รอบกล่องตอนปกติ */
+  --tpl-glow-strong: none;       /* glow ตอนไฮไลต์/สำเร็จ */
+  --tpl-text-glow: none;
+  --tpl-fill-radius: 999px;      /* ความมนของแถบ/หลอด */
+
+  /* ขอบตัวอักษร (?stroke=) — ปกติปิด */
+  --tpl-stroke: 0;
+  --tpl-stroke-color: #000000;
+}
+
+/* ---------- ตัวปรับกลางที่ทุก widget ได้เหมือนกัน (ดู common/look.js) ---------- */
+
+/* ขอบตัวอักษร: paint-order ให้ขอบอยู่หลังตัวอักษร ตัวหนังสือจะไม่ถูกขอบกินจนบวม */
+body { -webkit-text-stroke: var(--tpl-stroke) var(--tpl-stroke-color); paint-order: stroke fill; }
+
+/* ?anim=0 — overlay นิ่งสนิท ไม่มีอะไรขยับ (บางคนไม่อยากให้ดึงสายตาคนดู) */
+[data-anim="0"] *, [data-anim="0"] *::before, [data-anim="0"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+
+/* ---------- neon — ไซเบอร์นีออน ---------- */
+[data-tpl="neon"] {
+  --pan-bg: rgba(6, 6, 12, 0.72);
+  --pan-bg-strong: rgba(6, 6, 12, 0.88);
+  --pan-border: 1.5px solid var(--accent, #fe2c55);
+  --pan-radius: 6px;
+  --pan-shadow: 0 0 14px var(--accent-weak, rgba(254, 44, 85, 0.22)), inset 0 0 18px rgba(0, 0, 0, 0.55);
+  --pan-pad: 10px 14px 12px;
+
+  --tpl-text: #f4f7ff;
+  --tpl-dim: rgba(180, 220, 255, 0.62);
+  --tpl-shadow: 0 0 6px var(--accent-glow, rgba(254, 44, 85, 0.55));
+  --tpl-caps: uppercase;
+  --tpl-track: 0.09em;
+  --tpl-weight: 800;
+
+  --tpl-glow: 0 0 12px var(--accent-weak, rgba(254, 44, 85, 0.22));
+  --tpl-glow-strong: 0 0 26px var(--accent-glow, rgba(254, 44, 85, 0.55)), 0 0 48px var(--accent-weak, rgba(254, 44, 85, 0.22));
+  --tpl-text-glow: 0 0 8px var(--accent-glow, rgba(254, 44, 85, 0.55));
+  --tpl-fill-radius: 2px;
+}
+
+/* ---------- glass — กระจกฝ้า ---------- */
+[data-tpl="glass"] {
+  --pan-bg: rgba(255, 255, 255, 0.13);
+  --pan-bg-strong: rgba(255, 255, 255, 0.2);
+  --pan-border: 1px solid rgba(255, 255, 255, 0.28);
+  --pan-radius: 20px;
+  --pan-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
+  --pan-blur: blur(16px) saturate(150%);
+  --pan-pad: 12px 16px 14px;
+
+  --tpl-text: #ffffff;
+  --tpl-dim: rgba(255, 255, 255, 0.66);
+  --tpl-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+  --tpl-caps: none;
+  --tpl-track: 0.01em;
+  --tpl-weight: 650;
+
+  --tpl-glow: none;
+  --tpl-glow-strong: 0 0 24px rgba(255, 255, 255, 0.35);
+  --tpl-text-glow: none;
+  --tpl-fill-radius: 999px;
+}
+
+/* ---------- arcade — เกมพิกเซล ---------- */
+[data-tpl="arcade"] {
+  --pan-bg: #12121c;
+  --pan-bg-strong: #1c1c2c;
+  --pan-border: 3px solid #ffffff;
+  --pan-radius: 0px;
+  --pan-shadow: 5px 5px 0 rgba(0, 0, 0, 0.85);
+  --pan-pad: 10px 12px 12px;
+
+  --tpl-font: 'Courier New', 'DejaVu Sans Mono', ui-monospace, monospace;
+  --tpl-text: #ffffff;
+  --tpl-dim: rgba(255, 255, 255, 0.62);
+  --tpl-shadow: 2px 2px 0 rgba(0, 0, 0, 0.9);
+  --tpl-caps: uppercase;
+  --tpl-track: 0.04em;
+  --tpl-weight: 700;
+
+  --tpl-glow: none;
+  --tpl-glow-strong: none;
+  --tpl-text-glow: none;
+  --tpl-fill-radius: 0px;
+}
+
+/* ---------- plain — เรียบ: ไม่มีพื้นหลังเลย ----------
+ *
+ * ทำไมมีธีมนี้: ธีมอื่นทุกตัวมี "กล่อง" ของตัวเอง ซึ่งไปทับฉากที่ผู้ใช้จัดไว้แล้ว
+ * บางคนอยากได้แค่ตัวหนังสือกับรูปลอยอยู่บนฉาก ไม่ต้องมีกรอบอะไรมาบัง
+ *
+ * สิ่งที่ต้องระวังที่สุดของธีมไม่มีพื้นหลัง คือ "อ่านไม่ออกเวลาฉากสว่าง"
+ * พอไม่มีกล่องดำรองอยู่ ตัวอักษรขาวบนฉากขาวจะหายไปเลย ธีมนี้จึงใส่เงาตัวอักษร
+ * แบบวงแคบเข้มรอบตัวไว้ให้ตั้งแต่ต้น (ไม่ใช่ปล่อยให้ผู้ใช้ไปหาเอง)
+ * ใครอยากได้ขอบตัวอักษรจริงจังกว่านี้ยังใช้ ?stroke= ทับได้เหมือนเดิม
+ */
+[data-tpl="plain"] {
+  --pan-bg: transparent;
+  --pan-bg-strong: transparent;
+  --pan-border: 0 solid transparent;
+  --pan-radius: 0px;
+  --pan-shadow: none;
+  --pan-blur: none;
+  /* เว้นเฉพาะแนวตั้งให้บรรทัดไม่ติดกัน ไม่เว้นด้านข้างเพราะไม่มีกล่องให้เว้นจากขอบ */
+  --pan-pad: 2px 0 3px;
+
+  --tpl-text: #ffffff;
+  /* ทึบเกือบเต็มที่ — ธีมอื่นใช้ความจางแยกลำดับความสำคัญได้เพราะมีกล่องรองอยู่
+   * ธีมนี้ไม่มีกล่อง ตัวจางบนฉากสว่างจะหายไปเลย (ทดสอบที่ 0.78 แล้วอ่านไม่ออกจริง)
+   * ลำดับความสำคัญให้ไปพึ่งขนาดกับน้ำหนักตัวอักษรแทนความจาง */
+  --tpl-dim: rgba(255, 255, 255, 0.94);
+  /* ขอบทึบรอบตัวอักษร ไม่ใช่เงาฟุ้ง — ทดสอบบนฉากสว่างแล้วเงาเบลออ่านไม่ออกจริง
+   * ตัวขาวบนพื้นขาวต้องมีเส้นคมๆ คั่น เงาฟุ้งได้แค่ทำให้ขอบเทาซึ่งยังกลืนอยู่ดี
+   * นี่คือวิธีเดียวกับซับไตเติลและ overlay ทั่วไป: วาดเงาทึบ 1px รอบทิศ
+   * แล้วค่อยทับด้วยเงานุ่มอีกชั้นให้ดูมีมิติ ไม่แบนติดฉาก */
+  --tpl-shadow:
+    1px 0 0 rgba(0, 0, 0, 0.92), -1px 0 0 rgba(0, 0, 0, 0.92),
+    0 1px 0 rgba(0, 0, 0, 0.92), 0 -1px 0 rgba(0, 0, 0, 0.92),
+    1px 1px 0 rgba(0, 0, 0, 0.92), -1px -1px 0 rgba(0, 0, 0, 0.92),
+    1px -1px 0 rgba(0, 0, 0, 0.92), -1px 1px 0 rgba(0, 0, 0, 0.92),
+    0 2px 5px rgba(0, 0, 0, 0.55);
+  --tpl-caps: none;
+  --tpl-track: 0;
+  --tpl-weight: 700;                      /* หนากว่าปกติเล็กน้อย ช่วยให้ลอยออกจากฉาก */
+
+  --tpl-glow: none;
+  --tpl-glow-strong: none;
+  --tpl-text-glow: none;
+  --tpl-fill-radius: 999px;
+}
