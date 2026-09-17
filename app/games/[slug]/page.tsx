@@ -4,8 +4,17 @@ import { notFound } from "next/navigation";
 import { getGame } from "@/lib/content";
 import { absoluteUrl, breadcrumbLd, pageMetadata, snippet } from "@/lib/seo";
 import { GameCard } from "../../cards";
+import { lazyRichImages, Media } from "../../media";
 import { JsonLd } from "../../json-ld";
 import { Arrow, Footer, Nav, RevealObserver } from "../../ui";
+
+/** Keeps "<title> | AJENT" inside Google's display width, dropping words instead of cutting mid-phrase. */
+function gameTitle(name: string, platform: string) {
+  const options = platform
+    ? [`${name} เกม ${platform} สำหรับ TikTok Live`, `${name} เกม ${platform} TikTok Live`, `${name} เกม ${platform}`, name]
+    : [`${name} เกมสำหรับ TikTok Live`, `${name} เกม TikTok Live`, name];
+  return options.find((t) => t.length <= 52) ?? name.slice(0, 52);
+}
 
 export async function generateMetadata({ params }: PageProps<"/games/[slug]">): Promise<Metadata> {
   const data = await getGame((await params).slug);
@@ -13,7 +22,7 @@ export async function generateMetadata({ params }: PageProps<"/games/[slug]">): 
   const { game } = data;
   const platform = game.category?.isActive ? game.category.name : "";
   return pageMetadata({
-    title: platform ? `${game.name} — เกม ${platform} เชื่อมต่อ TikTok Live` : `${game.name} — เกมเชื่อมต่อ TikTok Live`,
+    title: gameTitle(game.name, platform),
     description: snippet([game.excerpt || `${game.name} เกมสำหรับสตรีมเมอร์ TikTok Live`, game.genre].filter(Boolean).join(" · ")),
     path: `/games/${game.slug}`,
     image: game.coverImage ? { url: game.coverImage, alt: game.name } : undefined,
@@ -89,7 +98,7 @@ export default async function GameDetailPage({ params }: PageProps<"/games/[slug
             </div>
           </div>
           <div className="detail-cover reveal-right">
-            {game.coverImage ? <img src={game.coverImage} alt={game.name} /> : <div className="game-img-placeholder" />}
+            {game.coverImage ? <Media src={game.coverImage} alt={game.name} fill sizes="(max-width: 900px) 92vw, 560px" priority /> : <div className="game-img-placeholder" />}
           </div>
         </div>
       </section>
@@ -97,7 +106,7 @@ export default async function GameDetailPage({ params }: PageProps<"/games/[slug
       {game.content && (
         <section className="detail-body">
           <div className="rich-card reveal">
-            <div className="rich" dangerouslySetInnerHTML={{ __html: game.content }} />
+            <div className="rich" dangerouslySetInnerHTML={{ __html: lazyRichImages(game.content) }} />
           </div>
         </section>
       )}

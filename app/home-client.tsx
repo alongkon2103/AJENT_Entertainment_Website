@@ -1,12 +1,13 @@
 "use client";
 
 import { Eye, Gift } from "lucide-react";
-import { useState, type FormEvent, type PointerEvent } from "react";
+import { useEffect, useState, type FormEvent, type PointerEvent } from "react";
 import type { GameWithTags } from "@/lib/content";
 import type { Tag } from "@/lib/generated/prisma/client";
 import { joinAjent, type JoinStatus } from "./actions";
 import { GameCard } from "./cards";
 import { texts } from "./data";
+import { Media } from "./media";
 import { Arrow, useUI } from "./ui";
 
 /** Hero brand text + TikTok join form (posts to Discord through the joinAjent server action). */
@@ -114,7 +115,7 @@ export function StepsVisual() {
       <div className="steps-stage">
         <div className="steps-plate" />
         <div className="steps-card">
-          <img src="/steps-live.jpg" alt="Let's Go Live! เริ่มไลฟ์ได้ง่ายๆ" loading="lazy" />
+          <Media src="/steps-live.jpg" alt="Let's Go Live! เริ่มไลฟ์ได้ง่ายๆ" fill sizes="(max-width: 768px) 92vw, 470px" />
           <span className="steps-sheen" />
         </div>
         <div className="steps-chip steps-chip-live">
@@ -132,4 +133,26 @@ export function StepsVisual() {
       </div>
     </div>
   );
+}
+
+/**
+ * The hero clip is decoration. The phone shows the poster frame (part of the first paint) and the
+ * video only loads after the visitor first scrolls or taps, so it never competes with the hero image
+ * for bandwidth or become the Largest Contentful Paint element.
+ */
+export function HeroVideo() {
+  const [playVideo, setPlayVideo] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-data: reduce)").matches) return;
+    const start = () => setPlayVideo(true);
+    const events = ["scroll", "pointerdown", "keydown", "touchstart"] as const;
+    for (const e of events) window.addEventListener(e, start, { once: true, passive: true });
+    return () => {
+      for (const e of events) window.removeEventListener(e, start);
+    };
+  }, []);
+
+  if (!playVideo) return <Media src="/preview-poster.jpg" alt="วิดีโอตัวอย่างการไลฟ์เกม" fill sizes="200px" priority />;
+  return <video src="/Preview.mp4" poster="/preview-poster.jpg" autoPlay muted loop playsInline preload="auto" aria-label="วิดีโอตัวอย่างการไลฟ์เกม" />;
 }

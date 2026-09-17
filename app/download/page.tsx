@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { absoluteUrl, breadcrumbLd, faqLd, pageMetadata, snippet } from "@/lib/seo";
 import { tikkies } from "../data";
+import { Media } from "../media";
 import { JsonLd } from "../json-ld";
 import { Icon } from "../icons";
 import { Arrow, Faq, Footer, Nav, RevealObserver } from "../ui";
 import AppEmbed from "./AppEmbed";
 
 export const metadata = pageMetadata({
-  title: "ดาวน์โหลด Tikkies Tools โปรแกรมเชื่อมต่อ TikTok Live กับเกม",
+  title: "ดาวน์โหลด Tikkies Tools โปรแกรมรันของขวัญ TikTok",
   description: snippet(
     `ดาวน์โหลด Tikkies Tools v${tikkies.app.version} โปรแกรมเชื่อมต่อ TikTok Live กับเกมและโอเวอร์เลย์ ตั้งกฎของขวัญ แป้นเสียง อ่านแชทออกเสียง สั่ง OBS บน Windows สมาชิกสังกัด AJENT ใช้งานได้ฟรี`,
   ),
@@ -149,7 +150,7 @@ export default function DownloadPage() {
                   <span className="preview-screen-title">Tikkies Tools</span>
                 </div>
                 { }
-                <img src="/tikkies-preview.png" alt="Tikkies Tools" style={{ width: "100%", display: "block" }} />
+                <Media src="/tikkies-preview.png" alt="หน้าจอโปรแกรม Tikkies Tools" width={1512} height={893} sizes="(max-width: 900px) 92vw, 560px" style={{ width: "100%", height: "auto", display: "block" }} />
               </div>
             </div>
           </div>

@@ -5,7 +5,7 @@ import { JsonLd } from "../json-ld";
 import { Footer, Nav, RevealObserver } from "../ui";
 
 export const metadata = pageMetadata({
-  title: "เกมในสังกัด — เกม Roblox และ Minecraft สำหรับ TikTok Live",
+  title: "เกมในสังกัด Roblox และ Minecraft",
   description:
     "รวมเกม Roblox และ Minecraft จาก Judy Studio และ A Class Store ที่เชื่อมต่อ TikTok Live ผู้ชมส่งของขวัญแล้วเกิดเหตุการณ์ในเกมทันที",
   path: "/games",

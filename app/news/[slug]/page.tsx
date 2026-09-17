@@ -5,6 +5,7 @@ import { getNews } from "@/lib/content";
 import { absoluteUrl, breadcrumbLd, pageMetadata, publisherRef, SITE, snippet } from "@/lib/seo";
 import { thaiDate } from "@/lib/tags";
 import { NewsCard, NewsTag } from "../../cards";
+import { lazyRichImages, Media } from "../../media";
 import { JsonLd } from "../../json-ld";
 import { Footer, Nav, RevealObserver } from "../../ui";
 
@@ -13,7 +14,7 @@ export async function generateMetadata({ params }: PageProps<"/news/[slug]">): P
   if (!data) return { title: "ไม่พบข่าว", robots: { index: false } };
   const { item } = data;
   return pageMetadata({
-    title: item.title,
+    title: snippet(item.title, 50),
     description: snippet(item.excerpt || item.title),
     path: `/news/${item.slug}`,
     image: item.coverImage ? { url: item.coverImage, alt: item.title } : undefined,
@@ -63,12 +64,12 @@ export default async function NewsDetailPage({ params }: PageProps<"/news/[slug]
       <section className="detail-body article-body">
         {item.coverImage && (
           <div className="article-cover reveal">
-            <img src={item.coverImage} alt={item.title} />
+            <Media src={item.coverImage} alt={item.title} fill sizes="(max-width: 900px) 92vw, 820px" priority />
           </div>
         )}
         {item.content && (
           <div className="rich-card reveal">
-            <div className="rich" dangerouslySetInnerHTML={{ __html: item.content }} />
+            <div className="rich" dangerouslySetInnerHTML={{ __html: lazyRichImages(item.content) }} />
           </div>
         )}
       </section>

@@ -155,7 +155,7 @@ body.dark .nav-links.open{background:#1a1430;}
   .hero-phone-frame{border-radius:14px;}
 }
 
-.hero-phone-body video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
+.hero-phone-body video,.hero-phone-body img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
 
 /* ===== SECTIONS ===== */
 .section{padding:80px 24px;max-width:1100px;margin:0 auto;}
@@ -373,6 +373,8 @@ body.dark .steps-chip-live{background:#1a1430;color:#e0daf0;}
 
 /* ===== ANIMATIONS ===== */
 @keyframes fadeInUp{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}
+@keyframes riseIn{from{transform:translateY(40px);}to{transform:translateY(0);}}
+@keyframes slideInRightVisible{from{transform:translateX(50px);}to{transform:translateX(0);}}
 @keyframes fadeInDown{from{opacity:0;transform:translateY(-30px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 @keyframes slideInLeft{from{opacity:0;transform:translateX(-50px);}to{opacity:1;transform:translateX(0);}}
@@ -382,12 +384,12 @@ body.dark .steps-chip-live{background:#1a1430;color:#e0daf0;}
 @keyframes pulseGlow{0%,100%{box-shadow:0 0 20px rgba(139,92,246,.15);}50%{box-shadow:0 0 40px rgba(139,92,246,.3);}}
 
 /* Hero entrance */
-.hero-center{animation:fadeInUp .8s ease both;}
-.hero-devices{animation:slideInRight .8s ease .3s both;}
-.hero-brand-text .line1{animation:fadeInUp .7s ease .2s both;}
-.hero-brand-text .line2{animation:fadeInUp .7s ease .35s both;}
-.hero-tagline{animation:fadeInUp .7s ease .5s both;}
-.hero-cta{animation:fadeInUp .7s ease .65s both;}
+.hero-center{animation:riseIn .8s ease both;}
+.hero-devices{animation:slideInRightVisible .8s ease .3s both;}
+.hero-brand-text .line1{animation:riseIn .7s ease .2s both;}
+.hero-brand-text .line2{animation:riseIn .7s ease .35s both;}
+.hero-tagline{animation:riseIn .7s ease .5s both;}
+.hero-cta{animation:riseIn .7s ease .65s both;}
 .hero-laptop-frame{animation:float 6s ease-in-out infinite;}
 
 /* Scroll reveal */
@@ -534,6 +536,8 @@ body.dark .steps-chip-live{background:#1a1430;color:#e0daf0;}
 .demo-open{margin-left:auto;font-size:11px;font-weight:600;color:#c4b5fd;text-decoration:none;}
 .demo-open:hover{color:#fff;}
 .demo-frame{width:100%;height:clamp(480px,80vh,800px);border:0;display:block;background:#0e0a20;}
+.demo-frame-box{display:block;}
+.demo-frame-idle{display:flex;align-items:center;justify-content:center;font-size:14px;color:#6a6090;}
 .demo-hint{text-align:center;font-size:13px;color:#7a70a8;margin-top:18px;line-height:1.7;}
 @media(max-width:768px){
   .page-hero{padding:100px 16px 40px;}
@@ -585,14 +589,14 @@ a.news-card{display:block;text-decoration:none;color:inherit;}
 .detail-actions{display:flex;flex-wrap:wrap;gap:10px;}
 .detail-ghost{background:transparent;border-color:rgba(196,181,253,.35);color:#e0daf0;}
 .detail-ghost:hover{background:rgba(139,92,246,.15);border-color:#a78bfa;}
-.detail-cover{aspect-ratio:16/10;border-radius:20px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a4a,#3a1a5a);border:1px solid rgba(139,92,246,.25);box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.detail-cover{position:relative;aspect-ratio:16/10;border-radius:20px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a4a,#3a1a5a);border:1px solid rgba(139,92,246,.25);box-shadow:0 24px 60px rgba(0,0,0,.4);}
 .detail-cover img{width:100%;height:100%;object-fit:cover;display:block;}
 .detail-body{max-width:860px;margin:0 auto;padding:56px 24px;}
 .article-hero{padding-bottom:40px;}
 .article-head{max-width:860px;}
 .article-body{padding-top:0;}
-.article-cover{border-radius:20px;overflow:hidden;margin-bottom:24px;box-shadow:0 12px 40px rgba(80,40,140,.12);}
-.article-cover img{width:100%;display:block;}
+.article-cover{position:relative;aspect-ratio:16/9;border-radius:20px;overflow:hidden;margin-bottom:24px;box-shadow:0 12px 40px rgba(80,40,140,.12);}
+.article-cover img{width:100%;height:100%;object-fit:cover;display:block;}
 .rich-card{background:#fff;border:1px solid #e8e0f8;border-radius:24px;padding:40px 44px;box-shadow:0 2px 24px rgba(0,0,0,.04);}
 @media(max-width:900px){
   .detail-hero{padding:100px 16px 44px;}

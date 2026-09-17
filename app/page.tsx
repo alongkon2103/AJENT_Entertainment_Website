@@ -2,8 +2,9 @@ import Link from "next/link";
 import { getHomeContent } from "@/lib/content";
 import { faqLd, pageMetadata, SITE } from "@/lib/seo";
 import { NewsCard } from "./cards";
+import { Media } from "./media";
 import { faqs, feats, previewFeats, steps } from "./data";
-import { GamesShowcase, HeroJoin, StepsVisual } from "./home-client";
+import { GamesShowcase, HeroJoin, HeroVideo, StepsVisual } from "./home-client";
 import { JsonLd } from "./json-ld";
 import { Arrow, Faq, Footer, Nav, RevealObserver } from "./ui";
 
@@ -33,14 +34,22 @@ export default async function Home() {
                   <div className="hero-laptop-dot" style={{ background: "#ffbd2e" }} />
                   <div className="hero-laptop-dot" style={{ background: "#28c840" }} />
                 </div>
-                <img className="hero-laptop-img" src="/BannerTk.jpeg" alt="Tikkies Tools โปรแกรม TikTok LIVE Interactive สำหรับสตรีมเมอร์" width={1024} height={626} fetchPriority="high" />
+                <Media
+                  className="hero-laptop-img"
+                  src="/BannerTk.jpeg"
+                  alt="Tikkies Tools โปรแกรม TikTok LIVE Interactive สำหรับสตรีมเมอร์"
+                  width={1024}
+                  height={626}
+                  sizes="(max-width: 1000px) 78vw, 560px"
+                  priority
+                />
               </div>
             </div>
             <div className="hero-phone">
               <div className="hero-phone-frame">
                 <div className="hero-phone-notch"><div className="hero-phone-notch-inner" /></div>
                 <div className="hero-phone-body">
-                  <video src="/Preview.mp4" autoPlay muted loop playsInline aria-label="วิดีโอตัวอย่าง" />
+                  <HeroVideo />
                 </div>
               </div>
             </div>
@@ -133,7 +142,7 @@ export default async function Home() {
                   <span className="preview-screen-title">Tikkies Tools</span>
                 </div>
                 { }
-                <img src="/tikkies-preview.png" alt="Tikkies Tools" style={{ width: "100%", display: "block" }} />
+                <Media src="/tikkies-preview.png" alt="หน้าจอโปรแกรม Tikkies Tools" width={1512} height={893} sizes="(max-width: 900px) 92vw, 560px" style={{ width: "100%", height: "auto", display: "block" }} />
               </div>
             </div>
           </div>

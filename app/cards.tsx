@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { GameWithTags, NewsWithTag } from "@/lib/content";
 import { thaiDate, tint } from "@/lib/tags";
+import { Media } from "./media";
 
 /** Game card used on the homepage, /games and the "more games" row. Safe in server and client components. */
 export function GameCard({ game, style }: { game: GameWithTags; style?: CSSProperties }) {
@@ -10,7 +11,11 @@ export function GameCard({ game, style }: { game: GameWithTags; style?: CSSPrope
   return (
     <div className="game-card reveal" style={style}>
       <Link href={href} className="game-img" style={{ background: `linear-gradient(135deg,#1a1a4a,${tint(cat?.color ?? "#8b5cf6", "66")})` }}>
-        {game.coverImage ? <img className="game-cover" src={game.coverImage} alt={game.name} loading="lazy" /> : <div className="game-img-placeholder" />}
+        {game.coverImage ? (
+          <Media className="game-cover" src={game.coverImage} alt={game.name} fill sizes="(max-width: 500px) 46vw, (max-width: 900px) 48vw, 300px" />
+        ) : (
+          <div className="game-img-placeholder" />
+        )}
         {cat && (
           <div className="game-platform" style={{ background: cat.color, color: cat.textColor }}>
             {cat.name}
@@ -52,7 +57,7 @@ export function NewsCard({ item, style }: { item: NewsWithTag; style?: CSSProper
   return (
     <Link href={`/news/${item.slug}`} className="news-card reveal" style={style}>
       <div className="news-img" style={{ background: `linear-gradient(135deg,${tint(color, "14")},${tint(color, "2e")})` }}>
-        {item.coverImage && <img src={item.coverImage} alt="" loading="lazy" />}
+        {item.coverImage && <Media src={item.coverImage} alt={item.title} fill sizes="(max-width: 500px) 46vw, (max-width: 900px) 48vw, 260px" />}
       </div>
       <div className="news-body">
         {cat && <NewsTag name={cat.name} color={color} />}

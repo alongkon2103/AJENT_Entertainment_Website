@@ -9,7 +9,7 @@ export const SITE = {
   url: siteUrl,
   locale: "th_TH",
   language: "th-TH",
-  title: "AJENT ENTERTAINMENT | สังกัด TikTok Live สายเกม พร้อมเกมและโปรแกรมรันของขวัญ",
+  title: "สังกัด TikTok Live สายเกม | AJENT ENTERTAINMENT",
   description:
     "สังกัด TikTok Live สายเกม สมาชิกได้ใช้เกม Roblox, Minecraft และโปรแกรม Tikkies Tools ที่เชื่อมต่อของขวัญ TikTok พร้อมทีมซัพพอร์ตดูแลตั้งแต่เริ่มไลฟ์",
   keywords: [
@@ -47,7 +47,7 @@ export function pageMetadata(p: {
   article?: { publishedTime: Date; modifiedTime: Date; section?: string };
 }): Metadata {
   const image = p.image ?? SITE.ogImage;
-  const fullTitle = p.absoluteTitle ? p.title : `${p.title} | ${SITE.name}`;
+  const fullTitle = p.absoluteTitle ? p.title : `${p.title} | AJENT`;
   const base = { url: p.path, siteName: SITE.name, locale: SITE.locale, title: fullTitle, description: p.description, images: [image] };
   return {
     title: p.absoluteTitle ? { absolute: p.title } : p.title,
@@ -68,7 +68,7 @@ export function pageMetadata(p: {
 }
 
 /** Trim to a search-snippet friendly length without cutting mid-word where possible. */
-export const snippet = (text: string, max = 160) => {
+export const snippet = (text: string, max = 155) => {
   const t = text.replace(/\s+/g, " ").trim();
   if (t.length <= max) return t;
   const cut = t.slice(0, max - 1);

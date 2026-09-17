@@ -18,7 +18,7 @@ const inter = Inter({
 // Defaults for every page. Pages add their own canonical URL + share cards via pageMetadata() in lib/seo.ts.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
-  title: { default: SITE.title, template: `%s | ${SITE.name}` },
+  title: { default: SITE.title, template: "%s | AJENT" },
   description: SITE.description,
   applicationName: SITE.name,
   keywords: SITE.keywords,
