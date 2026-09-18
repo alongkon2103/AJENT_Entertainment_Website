@@ -1,13 +1,14 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { GameWithTags, NewsWithTag } from "@/lib/content";
-import { thaiDate, tint } from "@/lib/tags";
+import { formatDate, tint } from "@/lib/tags";
+import { localePath, ui, type Locale } from "./i18n";
 import { Media } from "./media";
 
 /** Game card used on the homepage, /games and the "more games" row. Safe in server and client components. */
-export function GameCard({ game, style }: { game: GameWithTags; style?: CSSProperties }) {
+export function GameCard({ lang, game, style }: { lang: Locale; game: GameWithTags; style?: CSSProperties }) {
   const cat = game.category?.isActive ? game.category : null;
-  const href = `/games/${game.slug}`;
+  const href = localePath(lang, `/games/${game.slug}`);
   return (
     <div className="game-card reveal" style={style}>
       <Link href={href} className="game-img" style={{ background: `linear-gradient(135deg,#1a1a4a,${tint(cat?.color ?? "#8b5cf6", "66")})` }}>
@@ -43,7 +44,7 @@ export function GameCard({ game, style }: { game: GameWithTags; style?: CSSPrope
             )}
           </div>
           <Link href={href} className="game-detail-btn">
-            ดูรายละเอียด
+            {ui[lang].details}
           </Link>
         </div>
       </div>
@@ -51,18 +52,18 @@ export function GameCard({ game, style }: { game: GameWithTags; style?: CSSPrope
   );
 }
 
-export function NewsCard({ item, style }: { item: NewsWithTag; style?: CSSProperties }) {
+export function NewsCard({ lang, item, style }: { lang: Locale; item: NewsWithTag; style?: CSSProperties }) {
   const cat = item.category?.isActive ? item.category : null;
   const color = cat?.color ?? "#8b5cf6";
   return (
-    <Link href={`/news/${item.slug}`} className="news-card reveal" style={style}>
+    <Link href={localePath(lang, `/news/${item.slug}`)} className="news-card reveal" style={style}>
       <div className="news-img" style={{ background: `linear-gradient(135deg,${tint(color, "14")},${tint(color, "2e")})` }}>
         {item.coverImage && <Media src={item.coverImage} alt={item.title} fill sizes="(max-width: 500px) 46vw, (max-width: 900px) 48vw, 260px" />}
       </div>
       <div className="news-body">
         {cat && <NewsTag name={cat.name} color={color} />}
         <div className="news-title">{item.title}</div>
-        <div className="news-date">{thaiDate(item.publishedAt)}</div>
+        <div className="news-date">{formatDate(item.publishedAt, lang)}</div>
       </div>
     </Link>
   );

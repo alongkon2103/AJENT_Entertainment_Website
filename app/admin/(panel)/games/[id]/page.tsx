@@ -26,12 +26,12 @@ export default async function AdminGameEditPage({ params }: PageProps<"/admin/ga
             <ArrowLeft size={15} /> เกมทั้งหมด
           </Link>
           <h1 className="adm-title">{game ? game.name : "เพิ่มเกมใหม่"}</h1>
-          <p className="adm-sub">{game ? `/games/${game.slug}` : "กรอกข้อมูลแล้วกดบันทึก เกมจะยังไม่แสดงจนกว่าจะเปิดเผยแพร่"}</p>
+          <p className="adm-sub">{game ? `/th/games/${game.slug}` : "กรอกข้อมูลแล้วกดบันทึก เกมจะยังไม่แสดงจนกว่าจะเปิดเผยแพร่"}</p>
         </div>
         {game && (
           <div className="adm-head-actions">
             {game.isPublished && (
-              <a href={`/games/${game.slug}`} target="_blank" className="adm-btn">
+              <a href={`/th/games/${game.slug}`} target="_blank" className="adm-btn">
                 <ExternalLink size={16} /> ดูบนเว็บ
               </a>
             )}
@@ -61,6 +61,15 @@ export default async function AdminGameEditPage({ params }: PageProps<"/admin/ga
             <section className="adm-stack">
               <span className="adm-label">รายละเอียดเกม</span>
               <RichEditor name="content" defaultValue={game?.content} placeholder="เล่าเกี่ยวกับเกม วิธีเล่น ของขวัญที่ใช้ได้ ใส่รูปหรือวิดีโอ YouTube ได้" />
+            </section>
+            <section className="adm-card adm-card-pad adm-stack">
+              <div className="adm-card-title" style={{ marginBottom: 0 }}>ภาษาอังกฤษ (หน้า /en)</div>
+              <span className="adm-hint">ช่องไหนเว้นว่าง หน้าภาษาอังกฤษจะใช้ข้อความภาษาไทยแทน</span>
+              <Field label="คำอธิบายสั้น (EN)">
+                <textarea className="adm-textarea" name="excerptEn" defaultValue={game?.excerptEn} maxLength={500} />
+              </Field>
+              <span className="adm-label">รายละเอียดเกม (EN)</span>
+              <RichEditor name="contentEn" defaultValue={game?.contentEn} placeholder="English version of the game details" />
             </section>
           </div>
 

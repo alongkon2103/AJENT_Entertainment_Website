@@ -25,12 +25,12 @@ export default async function AdminNewsEditPage({ params }: PageProps<"/admin/ne
             <ArrowLeft size={15} /> ข่าวสาร &amp; อัปเดต
           </Link>
           <h1 className="adm-title">{item ? item.title : "เขียนข่าวใหม่"}</h1>
-          <p className="adm-sub">{item ? `/news/${item.slug}` : "บันทึกเป็นฉบับร่างก่อนได้ เปิดเผยแพร่เมื่อพร้อม"}</p>
+          <p className="adm-sub">{item ? `/th/news/${item.slug}` : "บันทึกเป็นฉบับร่างก่อนได้ เปิดเผยแพร่เมื่อพร้อม"}</p>
         </div>
         {item && (
           <div className="adm-head-actions">
             {live && (
-              <a href={`/news/${item.slug}`} target="_blank" className="adm-btn">
+              <a href={`/th/news/${item.slug}`} target="_blank" className="adm-btn">
                 <ExternalLink size={16} /> ดูบนเว็บ
               </a>
             )}
@@ -57,6 +57,18 @@ export default async function AdminNewsEditPage({ params }: PageProps<"/admin/ne
             <section className="adm-stack">
               <span className="adm-label">เนื้อหาข่าว</span>
               <RichEditor name="content" defaultValue={item?.content} placeholder="เขียนเนื้อหาข่าว ใส่หัวข้อ รูป ลิงก์ หรือวิดีโอ YouTube ได้" />
+            </section>
+            <section className="adm-card adm-card-pad adm-stack">
+              <div className="adm-card-title" style={{ marginBottom: 0 }}>ภาษาอังกฤษ (หน้า /en)</div>
+              <span className="adm-hint">ช่องไหนเว้นว่าง หน้าภาษาอังกฤษจะใช้ข้อความภาษาไทยแทน</span>
+              <Field label="หัวข้อข่าว (EN)">
+                <input className="adm-input" name="titleEn" defaultValue={item?.titleEn} maxLength={160} />
+              </Field>
+              <Field label="คำโปรย (EN)">
+                <textarea className="adm-textarea" name="excerptEn" defaultValue={item?.excerptEn} maxLength={500} />
+              </Field>
+              <span className="adm-label">เนื้อหาข่าว (EN)</span>
+              <RichEditor name="contentEn" defaultValue={item?.contentEn} placeholder="English version of the article" />
             </section>
           </div>
 

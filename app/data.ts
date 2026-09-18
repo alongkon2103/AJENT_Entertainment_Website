@@ -1,44 +1,9 @@
 import { Gamepad2, Gift, Headset, Mail, Radio, ShieldCheck, TrendingUp } from "lucide-react";
 import { DiscordLogo, LineLogo, TikTokLogo } from "./icons";
 
-export const texts = {
-  th: {
-    home: "หน้าหลัก",
-    game: "เกมในสังกัด",
-    program: "โปรแกรมเชื่อม",
-    faq: "FAQ",
-    contact: "ติดต่อเรา",
-    heroLine1: "AJENT",
-    heroLine2: "Entertainment",
-    heroTag: "พัฒนาช่องของคุณ ให้ปังไปพร้อมกับเรา",
-    heroBtn: "เข้าร่วมกับเรา",
-    heroInput: "ใส่ชื่อ TikTok ของคุณ",
-    joinSending: "กำลังส่ง...",
-    joinOk: "ทีมงานจะติดต่อกลับทาง TikTok เร็วๆ นี้",
-    joinInvalid: "ชื่อ TikTok ไม่ถูกต้อง ใช้ได้เฉพาะ a-z, 0-9, _ และ . (2-24 ตัว)",
-    joinRate: "ส่งไปแล้ว รอสักครู่ก่อนส่งอีกครั้ง",
-    joinFailed: "ส่งไม่สำเร็จ ลองใหม่อีกครั้ง",
-  },
-  en: {
-    home: "Home",
-    game: "Games",
-    program: "Program",
-    faq: "FAQ",
-    contact: "Contact",
-    heroLine1: "AJENT",
-    heroLine2: "Entertainment",
-    heroTag: "Leveling up your live, together with us.",
-    heroBtn: "Join Us",
-    heroInput: "Enter your TikTok name",
-    joinSending: "Sending...",
-    joinOk: "Thanks! Our team will reach out on TikTok soon",
-    joinInvalid: "Invalid TikTok name. Use a-z, 0-9, _ and . (2-24 characters)",
-    joinRate: "Already sent. Please wait a moment before trying again",
-    joinFailed: "Couldn't send. Please try again",
-  },
-};
+// Non-text site data. All copy lives in app/dictionaries/{th,en}.ts.
 
-/** Footer "ติดต่อเรา" buttons. */
+/** Footer contact buttons. */
 export const socials = [
   { id: "tiktok", name: "TikTok", handle: "@ajent.th", href: "https://www.tiktok.com/@ajent.th", Logo: TikTokLogo },
   { id: "line", name: "LINE", handle: "@269nbxml", href: "https://line.me/R/ti/p/@269nbxml", Logo: LineLogo },
@@ -46,44 +11,10 @@ export const socials = [
   { id: "email", name: "Email", handle: "ajent.entertainment@gmail.com", href: "mailto:ajent.entertainment@gmail.com", Logo: Mail },
 ];
 
-export const feats = [
-  { icon: Radio, title: "เชื่อมต่อ TikTok Live", text: "ใช้งานง่าย เปรียบเสมือน รีโมทคอนโทรล" },
-  { icon: Gamepad2, title: "เกมในสังกัด", text: "ครบทุกเกมภาพ เกมเพลย์ แฟนตาซี พร้อมอัปเดตใหม่ตลอด" },
-  { icon: TrendingUp, title: "ระบบรายได้", text: "รับค่าคอมมิชชั่นสูง แสดงรายได้แบบเรียลไทม์" },
-  { icon: ShieldCheck, title: "ปลอดภัย ใช้ง่าย", text: "ระบบปลอดภัย ป้องกันด้วยระบบ ดูแลตลอด 24 ชั่วโมง" },
-  { icon: Headset, title: "ทีมซัพพอร์ต", text: "พร้อมให้ความช่วยเหลือ ตลอดเวลาทุกวัน" },
-  { icon: Gift, title: "สิทธิพิเศษสำหรับสมาชิก", text: "มีสิทธิ์ได้รับ ส่วนลดพิเศษ ข้อเสนอพิเศษต่างๆ" },
-];
+/** Icons for the homepage feature strip, same order as dict.home.feats. */
+export const featIcons = [Radio, Gamepad2, TrendingUp, ShieldCheck, Headset, Gift];
 
-export const steps = [
-  { num: "01", title: "ดาวน์โหลดโปรแกรม", desc: "ดาวน์โหลดโปรแกรมเชื่อมต่อจากเว็บไซต์ของเรา รองรับทั้ง Windows และ Mac" },
-  { num: "02", title: "เชื่อมต่อ TikTok", desc: "ล็อกอินบัญชี TikTok ของคุณผ่านโปรแกรม ระบบจะเชื่อมต่อ Gift กับเกมให้อัตโนมัติ" },
-  { num: "03", title: "เลือกเกม & เริ่มไลฟ์", desc: "เลือกเกมที่ต้องการจากสังกัด ตั้งค่า Gift Action แล้วกดเริ่มไลฟ์ได้เลย" },
-  { num: "04", title: "รับรายได้ & ของขวัญ", desc: "รับค่าคอมมิชชั่นจาก Gift ที่ผู้ชมส่ง พร้อมสิทธิพิเศษและของขวัญจากสังกัด" },
-];
-
-
-
-export const previewFeats = [
-  "เชื่อมต่อ Gift แบบ Real-time",
-  "รองรับ Overlay สำหรับ OBS",
-  "ดูสถิติรายได้แบบเรียลไทม์",
-  "อัปเดตอัตโนมัติ ใช้งานได้ตลอด 24 ชม.",
-];
-
-
-export const faqs = [
-  { q: "สังกัด TikTok คืออะไร?", a: "สังกัดคือหน่วยงานที่ทำหน้าที่ดูแลและสนับสนุนครีเอเตอร์บน TikTok ไม่ว่าจะเป็น Streamer, LIVE Creator หรือ VJ โดยช่วยให้คำแนะนำเกี่ยวกับการไลฟ์ การพัฒนาคอนเทนต์ การแก้ไขปัญหา และการเติบโตบนแพลตฟอร์ม" },
-  { q: "สังกัดได้อะไรจาก Streamer หรือ VJ?", a: "โดยทั่วไป สังกัดไม่ได้หักส่วนแบ่งจากรายได้ของครีเอเตอร์โดยตรง เมื่อครีเอเตอร์สร้างผลงานและรายได้ตามเงื่อนไขของ TikTok ทางสังกัดอาจได้รับค่าตอบแทนหรือส่วนแบ่งจาก TikTok ตามระบบและเงื่อนไขที่กำหนด ดังนั้น รายได้หรือส่วนแบ่งของสังกัด ไม่ได้หมายความว่าจะถูกหักออกจากรายได้ของครีเอเตอร์โดยตรง" },
-  { q: "มีสังกัดกับไม่มีสังกัด แบบไหนดีกว่ากัน?", a: "ขึ้นอยู่กับความต้องการของแต่ละคน แต่ข้อดีของการมีสังกัดคือ มีทีมงานคอยดูแล ให้คำแนะนำ และมีโอกาสได้รับสิทธิประโยชน์เพิ่มเติม เช่น โบนัสหรือกิจกรรมสำหรับครีเอเตอร์, คำแนะนำและ Support เกี่ยวกับการไลฟ์, เครื่องมือ โปรแกรม หรือเกมสำหรับใช้ในการสตรีม สำหรับ AJent Entertainment เรามีทั้งทีมงาน Support รวมถึงโปรแกรมและเกมสำหรับสมาชิกสังกัด" },
-  { q: "สิทธิประโยชน์จากสังกัดดีจริงไหม?", a: "สิทธิประโยชน์จะมากหรือน้อยขึ้นอยู่กับแต่ละสังกัด ดังนั้นควรเลือกสังกัดที่เหมาะกับรูปแบบการไลฟ์ของตัวเอง บางสังกัดอาจมีโบนัส กิจกรรม โปรแกรม หรือเครื่องมือสำหรับการไลฟ์ ขณะที่สังกัดสายเกมอาจมีเกมสำหรับ Streamer โดยเฉพาะ สิ่งสำคัญคือควรศึกษารายละเอียด เงื่อนไข และสิทธิประโยชน์ให้ชัดเจนก่อนตัดสินใจเข้าสังกัด" },
-  { q: "เข้าสังกัดแล้วออกไม่ได้จริงไหม?", a: "ไม่ได้หมายความว่าเข้าสังกัดแล้วจะออกไม่ได้เสมอไป การออกจากสังกัดจะขึ้นอยู่กับเงื่อนไขของ TikTok และข้อตกลงที่มีผลกับบัญชีของครีเอเตอร์ในขณะนั้น ในบางกรณีอาจมีช่วงเวลาที่สามารถดำเนินการออกได้ด้วยตัวเอง หากพ้นช่วงเวลาดังกล่าวอาจต้องดำเนินการผ่านสังกัดหรือตามขั้นตอนที่ TikTok กำหนด คำแนะนำ: ก่อนเข้าสังกัดทุกครั้ง ควรอ่านเงื่อนไข ระยะเวลาข้อตกลง วิธีการออกจากสังกัด และสิทธิประโยชน์ต่างๆ ให้ครบถ้วนก่อนตัดสินใจ" },
-  { q: "เข้าสังกัด AJent ต้องซื้อเกมหรือโปรแกรมรันของขวัญไหม?", a: "ไม่ต้องซื้อครับ สมาชิกสังกัด AJent Entertainment จะได้รับสิทธิพิเศษในการใช้งานเกมจาก JUDYSHOP และ A CLASS STORE ฟรี ตามเกมและสิทธิ์ที่สังกัดกำหนด นอกจากนี้ยังมีโปรแกรมสำหรับเชื่อมต่อและรันของขวัญ, รูปภาพและสื่อประกอบการไลฟ์, Overlay สำหรับตกแต่งหน้าจอ, เกมสำหรับ Interactive LIVE และเครื่องมือพิเศษอื่นๆ เพื่อช่วยลดค่าใช้จ่ายในการเริ่มต้น" },
-  { q: "ไม่มีประสบการณ์ไลฟ์มาก่อน สามารถเข้าร่วม AJent ได้ไหม?", a: "ได้ครับ ไม่จำเป็นต้องมีประสบการณ์มาก่อน AJent Entertainment พร้อมช่วยตั้งแต่พื้นฐาน ไม่ว่าจะเป็นการตั้งค่าโปรแกรม การเตรียมไลฟ์ การใช้งานเกม ไปจนถึงเทคนิคและแนวทางในการพัฒนาการไลฟ์ ทีมงานของเรามีประสบการณ์ด้านการไลฟ์มากกว่า 2 ปี พร้อมนำประสบการณ์จริงมาช่วยแนะนำและ Support สมาชิก ขอแค่พร้อมเรียนรู้ เราพร้อมช่วยคุณพัฒนาและเติบโตไปด้วยกัน" },
-  { q: "ถ้าอยากเริ่มไลฟ์ ต้องมีอะไรบ้าง?", a: "เบื้องต้นควรมีบัญชี TikTok ที่มีสิทธิ์ใช้งานฟีเจอร์ LIVE ตามเงื่อนไขของ TikTok และคอมพิวเตอร์ที่เหมาะสำหรับการไลฟ์ ก็สามารถเริ่มต้นได้ ส่วนเรื่องเกม โปรแกรม และเครื่องมือต่างๆ ไม่ต้องกังวลครับ เพราะ AJent Entertainment มีเครื่องมือและเกมสำหรับสมาชิกสังกัด พร้อมทีมงานช่วยแนะนำการติดตั้งและตั้งค่าการใช้งาน" },
-];
-
-/* ===== Tikkies Tools (source: tikkies.aclassstore.com/th) ===== */
+/* ===== Tikkies Tools (source: tikkies.aclassstore.com) ===== */
 export const tikkies = {
   app: {
     version: "0.9.20",
@@ -92,29 +23,6 @@ export const tikkies = {
     url: "https://github.com/alongkon2103/Tikkies/releases/download/0.9.20/Tikkies-Tools-Setup-0.9.20.exe",
     demo: "/app-demo/index.html",
   },
-  intro: [
-    { icon: "gift" as const, title: "รับเหตุการณ์จาก TikTok LIVE", desc: "ของขวัญ แชท ไลค์ ผู้ติดตาม แชร์ เข้ามาแบบเรียลไทม์" },
-    { icon: "zap" as const, title: "ตั้งกฎว่าให้เกิดอะไร", desc: "ได้ Rose ให้หมุนกงล้อ ออกรางวัลใหญ่ให้กดปุ่มในเกม ต่อกฎเป็นสายได้" },
-    { icon: "monitor" as const, title: "ขึ้นจอไลฟ์อัตโนมัติ", desc: "โอเวอร์เลย์ เสียง แจ้งเตือน และปุ่มในเกม ทำงานเองโดยไม่ต้องกด" },
-  ],
-  capabilities: [
-    { num: "01", title: "Actions", sub: "ระบบกฎอัตโนมัติ", desc: "ตั้งว่า \"เหตุการณ์นี้ → ให้ทำอะไร\" ต่อกฎเป็นสายและแตกกิ่งตามผลที่สุ่มออกมาได้ ผลลัพธ์มี 9 แบบ เช่น เล่นเสียง แจ้งเตือนเต็มจอ หมุนกงล้อ หน่วงเวลา นับแต้ม อ่านออกเสียง กดปุ่มในเกม สลับชุดกฎได้ตามเกมที่เล่น" },
-    { num: "02", title: "TikTok Live", sub: "เชื่อมต่อไลฟ์แบบเรียลไทม์", desc: "ใส่ชื่อ TikTok แล้วกดเชื่อมต่อ โปรแกรมอ่านของขวัญ แชท ไลค์ ผู้ติดตาม แชร์ ได้ทันที ไม่ต้องใส่รหัสผ่าน TikTok พร้อมภาพรวมไลฟ์และสรุปหลังไลฟ์ (ยอดผู้ชมสูงสุด เพชรรวม ท็อปผู้สนับสนุน ส่งออก CSV ได้)" },
-    { num: "03", title: "Events", sub: "เหตุการณ์ที่ใช้จุดชนวนกฎได้ 8 แบบ", desc: "ของขวัญ (ระบุชิ้นหรือคอมโบ) · แชท (ใส่คำสั่งได้) · ไลค์ครบทุก N · ติดตาม · แชร์ · สมาชิกใหม่ · เข้าห้อง · คีย์ลัดที่กดเองขณะเล่น" },
-    { num: "04", title: "Timer", sub: "Subathon Timer และตัวนับ", desc: "เวลาเดินเพิ่มตามของขวัญ ผู้ติดตาม หรือแชร์ ตั้งอัตราเองได้ทุกช่อง มีตัวนับชัยชนะ Goal Bar และกงล้อสุ่มรางวัลที่ผูกกับกฎได้" },
-    { num: "05", title: "Integrations", sub: "ต่อกับ OBS เกม และโปรแกรมไลฟ์", desc: "สั่งเปลี่ยนซีน ซ่อน/แสดงแหล่งใน OBS หรือ Streamlabs ผ่าน obs-websocket · กดปุ่มในเกมให้อัตโนมัติแม้โปรแกรมไม่ได้อยู่หน้าจอ · โอเวอร์เลย์ทุกตัวเป็นลิงก์พื้นหลังโปร่งใส วางได้ทุกโปรแกรมไลฟ์ · แป้นเสียงทั้งคีย์บอร์ด · อ่านแชทออกเสียง (TTS)" },
-  ],
-  workflow: [
-    { num: "01", title: "ใส่ชื่อ TikTok ของคุณ", desc: "กดเชื่อมต่อ โปรแกรมจะอ่านของขวัญ แชท ไลค์ ผู้ติดตาม แบบเรียลไทม์" },
-    { num: "02", title: "ตั้งกฎว่าอะไรทำให้เกิดอะไร", desc: "ได้ Rose → หมุนกงล้อ → ออก \"+5\" → ตัวนับบวก 5 แตกกิ่งได้ไม่จำกัด หรือนำเข้าเพรีเซ็ตตามเกมแล้วแก้ต่อ" },
-    { num: "03", title: "วาง URL ลงในโปรแกรมไลฟ์", desc: "คัดลอกลิงก์โอเวอร์เลย์ไปวางเป็น Browser Source (ใน TikTok LIVE Studio เรียก Link Source) พื้นหลังโปร่งใสให้อัตโนมัติ" },
-  ],
-  installSteps: [
-    { num: "01", title: "ติดตั้งแล้วเปิดโปรแกรม", desc: "Windows อาจเตือนว่าไม่รู้จักผู้เผยแพร่ — กด \"ข้อมูลเพิ่มเติม\" แล้ว \"เรียกใช้ต่อไป\" ได้เลย" },
-    { num: "02", title: "เข้าสู่ระบบด้วยบัญชีสมาชิก", desc: "ใช้บัญชีที่ได้รับจากสังกัด ใช้ได้ 2 เครื่องต่อบัญชี เปลี่ยนเครื่องก็ปลดเครื่องเก่าออกได้เอง" },
-    { num: "03", title: "ใส่ชื่อ TikTok แล้วเชื่อมต่อ", desc: "โปรแกรมจะอ่านของขวัญ แชท ไลค์ ผู้ติดตาม แบบเรียลไทม์ ไม่ต้องใส่รหัสผ่าน TikTok" },
-    { num: "04", title: "นำเข้าเพรีเซ็ตหรือตั้งกฎเอง", desc: "แท็บเพรีเซ็ตมีชุดกฎสำเร็จรูปตามเกม กดนำเข้าแล้วแก้ต่อได้ทันที ทีมงานช่วยตั้งค่าให้ได้" },
-  ],
   presets: [
     { name: "Judy Smooth", slug: "judy-smooth", sub: "Roblox · Preset 1", rules: 14, bg: "linear-gradient(135deg,#1a1a4a,#2a1860)" },
     { name: "AC Hyper Run", slug: "ac-hyper-run", sub: "Roblox · Preset 1", rules: 17, bg: "linear-gradient(135deg,#2a1050,#4a1060)" },
@@ -123,28 +31,15 @@ export const tikkies = {
     { name: "AC Jump EVO", slug: "ac-jump-evo", sub: "Roblox · Preset 1", rules: 17, bg: "linear-gradient(135deg,#2a1050,#3a1a5a)" },
     { name: "Judy Legend", slug: "judy-legend", sub: "Roblox · Preset 1", rules: 16, bg: "linear-gradient(135deg,#1a1a4a,#4a1060)" },
   ],
+  /** Same order as dict.download.compat (descriptions). */
   compat: [
-    { name: "OBS Studio", desc: "สั่งเปลี่ยนซีน ซ่อน/แสดงแหล่ง ผ่าน obs-websocket", color: "#302e31" },
-    { name: "Streamlabs Desktop", desc: "รองรับการสั่งงานผ่าน obs-websocket เช่นกัน", color: "#31c3a2" },
-    { name: "TikTok LIVE Studio", desc: "วางโอเวอร์เลย์เป็น Link Source ได้เลย", color: "#fe2c55" },
-    { name: "XSplit / Prism", desc: "ทุกโปรแกรมที่วาง Browser Source ได้", color: "#8b5cf6" },
-    { name: "TikTok LIVE", desc: "อ่านของขวัญ แชท ไลค์ ผู้ติดตาม แบบเรียลไทม์", color: "#25f4ee" },
-    { name: "Roblox", desc: "กดปุ่มในเกมอัตโนมัติเมื่อผู้ชมส่งของขวัญ", color: "#3b82f6" },
-    { name: "Minecraft", desc: "ผูกของขวัญกับปุ่มคีย์บอร์ดได้ทุกเกม", color: "#22c55e" },
-    { name: "Windows 10/11", desc: "ติดตั้งไฟล์เดียว อัปเดตตัวเองอัตโนมัติ", color: "#0ea5e9" },
-  ],
-  faqs: [
-    { q: "สมาชิกสังกัด AJENT ใช้ Tikkies Tools ได้ฟรีไหม?", a: "ได้ครับ สมาชิกสังกัด AJENT Entertainment ใช้งานโปรแกรมได้ฟรีตามสิทธิ์สมาชิก พร้อมทีมงานช่วยติดตั้งและตั้งค่าให้ตั้งแต่ต้น ถ้ายังไม่ได้เข้าสังกัด ติดต่อเราได้เลย" },
-    { q: "ต้องใช้โปรแกรมไลฟ์ตัวไหน?", a: "ตัวไหนก็ได้ที่เปิดหน้าเว็บเป็นแหล่งภาพได้ เช่น OBS, Streamlabs, TikTok LIVE Studio, XSplit, Prism เพราะโอเวอร์เลย์ทุกตัวคือลิงก์ที่เอาไปวางเฉยๆ (ใน TikTok LIVE Studio ช่องนี้ชื่อ Link Source ไม่ได้ชื่อ Browser Source)" },
-    { q: "ใช้ได้กี่เครื่อง?", a: "บัญชีเดียวใช้ได้ 2 เครื่อง สลับเองได้จากหน้าบัญชี ถ้าเปลี่ยนคอมใหม่ก็ปลดเครื่องเก่าออกได้เลย" },
-    { q: "กฎและการตั้งค่าเก็บไว้ที่ไหน?", a: "ทั้งหมดอยู่ในเครื่องคุณ ไม่หายไปไหน เปิดโปรแกรมเมื่อไหร่ก็ใช้ต่อได้ทันที และส่งออก/นำเข้าชุดกฎเป็นไฟล์ได้" },
-    { q: "รองรับ Mac ไหม?", a: "ตอนนี้รองรับ Windows เป็นหลัก เวอร์ชัน Mac อยู่ระหว่างพัฒนา ระหว่างนี้ใช้ผ่าน Parallels หรือ Boot Camp ได้" },
-  ],
-  demoTabs: [
-    { id: "actions", label: "กฎอัตโนมัติ" },
-    { id: "overview", label: "ภาพรวมไลฟ์" },
-    { id: "soundpad", label: "แป้นเสียง" },
-    { id: "widgets", label: "โอเวอร์เลย์" },
-    { id: "history", label: "ประวัติไลฟ์" },
+    { name: "OBS Studio", color: "#302e31" },
+    { name: "Streamlabs Desktop", color: "#31c3a2" },
+    { name: "TikTok LIVE Studio", color: "#fe2c55" },
+    { name: "XSplit / Prism", color: "#8b5cf6" },
+    { name: "TikTok LIVE", color: "#25f4ee" },
+    { name: "Roblox", color: "#3b82f6" },
+    { name: "Minecraft", color: "#22c55e" },
+    { name: "Windows 10/11", color: "#0ea5e9" },
   ],
 };

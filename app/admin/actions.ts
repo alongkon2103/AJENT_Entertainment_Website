@@ -69,7 +69,7 @@ const link = (fd: FormData, key: string) => {
 const slug = (fd: FormData, source: string, prefix: string) =>
   (text(fd, "slug") || text(fd, source)).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) ||
   `${prefix}-${Date.now().toString(36)}`;
-const richText = (fd: FormData) => cleanRichText(String(fd.get("content") ?? "").slice(0, 300_000));
+const richText = (fd: FormData, key = "content") => cleanRichText(String(fd.get(key) ?? "").slice(0, 300_000));
 const ids = (fd: FormData, key: string) => fd.getAll(key).map(Number).filter(Number.isInteger).map((id) => ({ id }));
 
 function failed(err: unknown): FormState {
@@ -92,6 +92,7 @@ export async function saveTag(fd: FormData): Promise<FormState> {
   const data = {
     kind,
     name,
+    nameEn: text(fd, "nameEn", 60),
     slug: slug(fd, "name", kind),
     color: hex(fd, "color", "#8b5cf6"),
     textColor: hex(fd, "textColor", "#ffffff"),
@@ -138,6 +139,8 @@ export async function saveGame(fd: FormData): Promise<FormState> {
     genre: text(fd, "genre", 120),
     excerpt: text(fd, "excerpt", 500),
     content: richText(fd),
+    excerptEn: text(fd, "excerptEn", 500),
+    contentEn: richText(fd, "contentEn"),
     coverImage,
     playUrl,
     rating: Math.min(5, Math.max(0, Math.round((Number(text(fd, "rating", 5)) || 0) * 10) / 10)),
@@ -193,6 +196,9 @@ export async function saveNews(fd: FormData): Promise<FormState> {
     slug: slug(fd, "title", "news"),
     excerpt: text(fd, "excerpt", 500),
     content: richText(fd),
+    titleEn: text(fd, "titleEn", 160),
+    excerptEn: text(fd, "excerptEn", 500),
+    contentEn: richText(fd, "contentEn"),
     coverImage,
     isPublished: checked(fd, "isPublished"),
     isPinned: checked(fd, "isPinned"),

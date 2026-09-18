@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Noto_Sans_Thai } from "next/font/google";
-import { organizationLd, SITE, websiteLd } from "@/lib/seo";
+import { headers } from "next/headers";
+import { SITE } from "@/lib/seo";
 import "./globals.css";
-import { JsonLd } from "./json-ld";
+import { defaultLocale, isLocale } from "./i18n";
 import { UIProvider } from "./ui";
 
 const notoThai = Noto_Sans_Thai({
@@ -15,7 +16,8 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// Defaults for every page. Pages add their own canonical URL + share cards via pageMetadata() in lib/seo.ts.
+// Defaults for every page (Thai). app/[lang]/layout.tsx localizes them; pages add canonical URL,
+// hreflang and share cards via pageMetadata() in lib/seo.ts.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: { default: SITE.title, template: "%s | AJENT" },
@@ -32,7 +34,7 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
   },
-  openGraph: { type: "website", siteName: SITE.name, locale: SITE.locale, title: SITE.title, description: SITE.description, images: [SITE.ogImage] },
+  openGraph: { type: "website", siteName: SITE.name, locale: "th_TH", title: SITE.title, description: SITE.description, images: [SITE.ogImage] },
   twitter: { card: "summary_large_image", title: SITE.title, description: SITE.description, images: [SITE.ogImage.url] },
   appleWebApp: { capable: true, title: "AJENT", statusBarStyle: "black-translucent" },
   ...(process.env.GOOGLE_SITE_VERIFICATION && { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }),
@@ -45,11 +47,13 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // proxy.ts sets x-locale from the /th or /en prefix (admin and other pages default to Thai)
+  const locale = (await headers()).get("x-locale");
+  const lang = isLocale(locale) ? locale : defaultLocale;
   return (
-    <html lang="th" className={`${notoThai.variable} ${inter.variable}`}>
+    <html lang={lang} className={`${notoThai.variable} ${inter.variable}`}>
       <body>
-        <JsonLd data={[organizationLd(), websiteLd()]} />
         <UIProvider>{children}</UIProvider>
       </body>
     </html>

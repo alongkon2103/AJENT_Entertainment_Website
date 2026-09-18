@@ -16,6 +16,7 @@ model Tag {
   id        Int      @id @default(autoincrement())
   kind      String
   name      String
+  nameEn    String   @default("") // English label on /en pages; empty = use name
   slug      String
   color     String   @default("#8b5cf6")
   textColor String   @default("#ffffff")
@@ -39,6 +40,8 @@ model Game {
   genre       String   @default("")
   excerpt     String   @default("")
   content     String   @default("")
+  excerptEn   String   @default("") // English versions for /en pages; empty = fall back to Thai
+  contentEn   String   @default("")
   coverImage  String   @default("")
   playUrl     String   @default("")
   rating      Float    @default(0)
@@ -61,6 +64,9 @@ model News {
   title       String
   excerpt     String   @default("")
   content     String   @default("")
+  titleEn     String   @default("") // English versions for /en pages; empty = fall back to Thai
+  excerptEn   String   @default("")
+  contentEn   String   @default("")
   coverImage  String   @default("")
   isPublished Boolean  @default(false)
   isPinned    Boolean  @default(false)

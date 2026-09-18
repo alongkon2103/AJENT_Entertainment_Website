@@ -6,39 +6,38 @@ import type { GameWithTags } from "@/lib/content";
 import type { Tag } from "@/lib/generated/prisma/client";
 import { joinAjent, type JoinStatus } from "./actions";
 import { GameCard } from "./cards";
-import { texts } from "./data";
+import type { Dict } from "./dictionaries/th";
+import { ui, type Locale } from "./i18n";
 import { Media } from "./media";
-import { Arrow, useUI } from "./ui";
+import { Arrow } from "./ui";
 
 /** Hero brand text + TikTok join form (posts to Discord through the joinAjent server action). */
-export function HeroJoin() {
-  const { isEN } = useUI();
-  const t = isEN ? texts.en : texts.th;
+export function HeroJoin({ lang, t }: { lang: Locale; t: Dict["hero"] }) {
   const [tiktok, setTiktok] = useState("");
   const [join, setJoin] = useState<JoinStatus | "idle" | "sending">("idle");
 
   async function submitJoin(e: FormEvent) {
     e.preventDefault();
     setJoin("sending");
-    const status = await joinAjent(tiktok, isEN ? "EN" : "TH").catch((): JoinStatus => "failed");
+    const status = await joinAjent(tiktok, lang === "en" ? "EN" : "TH").catch((): JoinStatus => "failed");
     setJoin(status);
     if (status === "ok") setTiktok("");
   }
-  const joinMsg = { idle: "", sending: t.joinSending, ok: t.joinOk, invalid: t.joinInvalid, rate: t.joinRate, failed: t.joinFailed }[join];
+  const joinMsg = { idle: "", sending: t.sending, ok: t.ok, invalid: t.invalid, rate: t.rate, failed: t.failed }[join];
 
   return (
     <div className="hero-center">
       <h1 className="hero-brand-text">
-        <span className="line1">{t.heroLine1}</span>
-        <span className="line2">{t.heroLine2}</span>
+        <span className="line1">{t.line1}</span>
+        <span className="line2">{t.line2}</span>
       </h1>
-      <div className="hero-tagline">{t.heroTag}</div>
+      <div className="hero-tagline">{t.tag}</div>
       <form className="hero-cta" onSubmit={submitJoin}>
         <input
           type="text"
           name="tiktok"
-          placeholder={t.heroInput}
-          aria-label={t.heroInput}
+          placeholder={t.input}
+          aria-label={t.input}
           value={tiktok}
           onChange={(e) => {
             setTiktok(e.target.value);
@@ -49,7 +48,7 @@ export function HeroJoin() {
           required
         />
         <button type="submit" className="hero-cta-btn" disabled={join === "sending"}>
-          {join === "sending" ? t.joinSending : t.heroBtn}
+          {join === "sending" ? t.sending : t.btn}
           <Arrow />
         </button>
       </form>
@@ -61,16 +60,16 @@ export function HeroJoin() {
 }
 
 /** Category filter + game cards. Only categories that have a game in the list get a button. */
-export function GamesShowcase({ games, categories }: { games: GameWithTags[]; categories: Tag[] }) {
+export function GamesShowcase({ lang, games, categories }: { lang: Locale; games: GameWithTags[]; categories: Tag[] }) {
   const [filter, setFilter] = useState<number | "all">("all");
   const used = categories.filter((c) => games.some((g) => g.categoryId === c.id));
 
-  if (games.length === 0) return <p className="games-subtitle" style={{ textAlign: "center" }}>ยังไม่มีเกมที่เปิดให้แสดง</p>;
+  if (games.length === 0) return <p className="games-subtitle" style={{ textAlign: "center" }}>{ui[lang].noGames}</p>;
   return (
     <>
       {used.length > 0 && (
         <div className="games-filter reveal">
-          {[{ id: "all" as const, name: "ทั้งหมด" }, ...used].map((c) => (
+          {[{ id: "all" as const, name: ui[lang].all }, ...used].map((c) => (
             <button key={c.id} type="button" className={`games-filter-btn${filter === c.id ? " active" : ""}`} onClick={() => setFilter(c.id)}>
               {c.name}
             </button>
@@ -81,6 +80,7 @@ export function GamesShowcase({ games, categories }: { games: GameWithTags[]; ca
         {games.map((g, i) => (
           <GameCard
             key={g.id}
+            lang={lang}
             game={g}
             style={{ transitionDelay: `${i * 0.1}s`, display: filter === "all" || g.categoryId === filter ? undefined : "none" }}
           />
@@ -91,7 +91,7 @@ export function GamesShowcase({ games, categories }: { games: GameWithTags[]; ca
 }
 
 /** "4 steps" artwork as a layered 3D card: back plate, glow, light sheen and floating chips that tilt toward the mouse. */
-export function StepsVisual() {
+export function StepsVisual({ alt }: { alt: string }) {
   function track(e: PointerEvent<HTMLDivElement>) {
     if (e.pointerType !== "mouse") return;
     const el = e.currentTarget;
@@ -115,7 +115,7 @@ export function StepsVisual() {
       <div className="steps-stage">
         <div className="steps-plate" />
         <div className="steps-card">
-          <Media src="/steps-live.jpg" alt="Let's Go Live! เริ่มไลฟ์ได้ง่ายๆ" fill sizes="(max-width: 768px) 92vw, 470px" />
+          <Media src="/steps-live.jpg" alt={alt} fill sizes="(max-width: 768px) 92vw, 470px" />
           <span className="steps-sheen" />
         </div>
         <div className="steps-chip steps-chip-live">
@@ -140,7 +140,7 @@ export function StepsVisual() {
  * video only loads after the visitor first scrolls or taps, so it never competes with the hero image
  * for bandwidth or become the Largest Contentful Paint element.
  */
-export function HeroVideo() {
+export function HeroVideo({ label }: { label: string }) {
   const [playVideo, setPlayVideo] = useState(false);
 
   useEffect(() => {
@@ -153,6 +153,6 @@ export function HeroVideo() {
     };
   }, []);
 
-  if (!playVideo) return <Media src="/preview-poster.jpg" alt="วิดีโอตัวอย่างการไลฟ์เกม" fill sizes="200px" priority />;
-  return <video src="/Preview.mp4" poster="/preview-poster.jpg" autoPlay muted loop playsInline preload="auto" aria-label="วิดีโอตัวอย่างการไลฟ์เกม" />;
+  if (!playVideo) return <Media src="/preview-poster.jpg" alt={label} fill sizes="200px" priority />;
+  return <video src="/Preview.mp4" poster="/preview-poster.jpg" autoPlay muted loop playsInline preload="auto" aria-label={label} />;
 }

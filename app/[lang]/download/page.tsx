@@ -1,28 +1,40 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { getGameCovers } from "@/lib/content";
 import { absoluteUrl, breadcrumbLd, faqLd, pageMetadata, snippet } from "@/lib/seo";
-import { tikkies } from "../data";
-import { Media } from "../media";
-import { JsonLd } from "../json-ld";
-import { Icon } from "../icons";
-import { Arrow, Faq, Footer, Nav, RevealObserver } from "../ui";
+import { tikkies } from "../../data";
+import { getDictionary } from "../../dictionaries";
+import { isLocale, localePath } from "../../i18n";
+import { Media } from "../../media";
+import { JsonLd } from "../../json-ld";
+import { Icon } from "../../icons";
+import { Arrow, Faq, RevealObserver } from "../../ui";
 import AppEmbed from "./AppEmbed";
 
-export const metadata = pageMetadata({
-  title: "ดาวน์โหลด Tikkies Tools โปรแกรมรันของขวัญ TikTok",
-  description: snippet(
-    `ดาวน์โหลด Tikkies Tools v${tikkies.app.version} โปรแกรมเชื่อมต่อ TikTok Live กับเกมและโอเวอร์เลย์ ตั้งกฎของขวัญ แป้นเสียง อ่านแชทออกเสียง สั่ง OBS บน Windows สมาชิกสังกัด AJENT ใช้งานได้ฟรี`,
-  ),
-  path: "/download",
-  image: { url: "/BannerTk.jpeg", width: 1024, height: 626, alt: "Tikkies Tools โปรแกรม TikTok LIVE Interactive" },
-});
+export async function generateMetadata({ params }: PageProps<"/[lang]/download">): Promise<Metadata> {
+  const { lang } = await params;
+  if (!isLocale(lang)) return {};
+  const t = getDictionary(lang).download;
+  return pageMetadata({
+    lang,
+    title: t.metaTitle,
+    description: snippet(t.metaDescription(tikkies.app.version)),
+    path: "/download",
+    image: { url: "/BannerTk.jpeg", width: 1024, height: 626, alt: t.imageAlt },
+  });
+}
 
-export default async function DownloadPage() {
-  const { app, intro, capabilities, workflow, installSteps, presets, compat, faqs } = tikkies;
+export default async function DownloadPage({ params }: PageProps<"/[lang]/download">) {
+  const { lang } = await params;
+  if (!isLocale(lang)) notFound();
+  const d = getDictionary(lang);
+  const t = d.download;
+  const { app, presets, compat } = tikkies;
+  const { intro, capabilities, workflow, installSteps, faqs } = t;
   const covers = await getGameCovers(presets.map((p) => p.slug));
   return (
     <>
-      <Nav />
       <JsonLd
         data={[
           {
@@ -34,15 +46,15 @@ export default async function DownloadPage() {
             softwareVersion: app.version,
             fileSize: app.size,
             downloadUrl: app.url,
-            url: absoluteUrl("/download"),
+            url: absoluteUrl(localePath(lang, "/download")),
             image: absoluteUrl("/BannerTk.jpeg"),
             screenshot: absoluteUrl("/tikkies-preview.png"),
-            description: "โปรแกรมเชื่อมต่อ TikTok Live กับเกมและโอเวอร์เลย์ ตั้งกฎว่าของขวัญแต่ละชิ้นให้เกิดอะไร ขึ้นจอไลฟ์อัตโนมัติ",
+            description: t.appDescription,
             featureList: capabilities.map((c) => `${c.title}: ${c.sub}`),
-            inLanguage: "th",
+            inLanguage: lang,
           },
           faqLd(faqs),
-          breadcrumbLd([["ดาวน์โหลดโปรแกรม", "/download"]]),
+          breadcrumbLd(lang, [[t.crumb, "/download"]]),
         ]}
       />
       <RevealObserver />
@@ -51,20 +63,20 @@ export default async function DownloadPage() {
       {/* ===== HERO ===== */}
       <section className="page-hero" id="top">
         <div className="page-hero-inner">
-          <div className="faq-badge">ดาวน์โหลดโปรแกรม</div>
-          <h1 className="page-title">ดาวน์โหลด <span className="grad-text">Tikkies Tools</span></h1>
-          <p className="page-desc">โปรแกรมเชื่อมต่อ TikTok Live กับเกมและโอเวอร์เลย์ สำหรับสมาชิกสังกัด AJENT ไฟล์เดียวจบ ติดตั้งแล้วเปิดใช้ได้เลย</p>
+          <div className="faq-badge">{t.badge}</div>
+          <h1 className="page-title">{t.title} <span className="grad-text">Tikkies Tools</span></h1>
+          <p className="page-desc">{t.desc}</p>
           <div className="dl-card reveal">
             <div>
               <div className="dl-card-name">Tikkies Tools <span className="dl-card-ver">v{app.version}</span></div>
               <div className="dl-card-meta">{app.os} · {app.size}</div>
             </div>
             <div className="dl-card-actions">
-              <a className="preview-btn" href={app.url}>ดาวน์โหลดตัวติดตั้ง <Arrow size={14} /></a>
-              <a className="btn-ghost" href="#try">ลองกดเล่นก่อนโหลด ↓</a>
+              <a className="preview-btn" href={app.url}>{t.installer} <Arrow size={14} /></a>
+              <a className="btn-ghost" href="#try">{t.tryFirst}</a>
             </div>
           </div>
-          <p className="dl-note">สมาชิกสังกัด AJENT ใช้งานได้ฟรี ทีมงานช่วยติดตั้งและตั้งค่าให้ · ยังไม่ได้เข้าสังกัด? <Link href="/#contact">ติดต่อเรา</Link> · ยังไม่รองรับ macOS (ใช้ผ่าน Parallels หรือ Boot Camp ได้)</p>
+          <p className="dl-note">{t.noteBefore} <Link href={localePath(lang, "/#contact")}>{t.noteLink}</Link> {t.noteAfter}</p>
         </div>
       </section>
 
@@ -72,9 +84,9 @@ export default async function DownloadPage() {
       <section className="section">
         <div className="prog-wrap reveal">
           <div style={{ marginBottom: 32 }}>
-            <div className="sec-label reveal" style={{ color: "#a78bfa" }}>Tikkies Tools คืออะไร</div>
-            <h2 className="sec-title reveal">ของขวัญเข้า แล้วให้เกิดอะไร คุณเป็นคนกำหนด</h2>
-            <p className="sec-desc">Tikkies Tools คือโปรแกรมบน Windows ที่เชื่อม TikTok LIVE ของคุณเข้ากับเกมและจอไลฟ์ ตั้งกฎครั้งเดียว ได้ Rose ให้หมุนกงล้อ ออกรางวัลใหญ่ให้กดปุ่มในเกม ทุกอย่างขึ้นบนจอไลฟ์อัตโนมัติ ไม่ต้องมานั่งกดเอง</p>
+            <div className="sec-label reveal" style={{ color: "#a78bfa" }}>{t.whatLabel}</div>
+            <h2 className="sec-title reveal">{t.whatTitle}</h2>
+            <p className="sec-desc">{t.whatDesc}</p>
           </div>
           <div className="card-grid">
             {intro.map((it, i) => (
@@ -94,11 +106,11 @@ export default async function DownloadPage() {
       <section className="sec-dark" id="try">
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div className="games-header reveal">
-            <div className="games-badge">เห็นของจริงก่อน</div>
-            <h2 className="games-title">ลองใช้ Tikkies Tools ตัวจริง <span>ตรงนี้</span></h2>
-            <div className="games-subtitle">โปรแกรมตัวจริงรันอยู่ในหน้านี้ ตั้งกฎ ต่อสาย กดทดสอบได้ทุกอย่าง ไม่ต้องติดตั้งอะไรก่อน</div>
+            <div className="games-badge">{t.tryBadge}</div>
+            <h2 className="games-title">{t.tryTitle}<span>{t.tryTitleAccent}</span></h2>
+            <div className="games-subtitle">{t.trySubtitle}</div>
           </div>
-          <AppEmbed />
+          <AppEmbed lang={lang} demo={app.demo} t={d.embed} />
         </div>
       </section>
 
@@ -106,9 +118,9 @@ export default async function DownloadPage() {
       <section className="section">
         <div className="prog-wrap reveal">
           <div style={{ marginBottom: 32 }}>
-            <div className="sec-label reveal" style={{ color: "#a78bfa" }}>ความสามารถ</div>
-            <h2 className="sec-title reveal">Tikkies Tools ทำอะไรได้บ้าง</h2>
-            <p className="sec-desc">5 ส่วนหลักของโปรแกรม ทำงานร่วมกันตั้งแต่รับเหตุการณ์จากไลฟ์จนถึงผลลัพธ์บนจอและในเกม</p>
+            <div className="sec-label reveal" style={{ color: "#a78bfa" }}>{t.capLabel}</div>
+            <h2 className="sec-title reveal">{t.capTitle}</h2>
+            <p className="sec-desc">{t.capDesc}</p>
           </div>
           <div className="steps-cards">
             {capabilities.map((c, i) => (
@@ -129,8 +141,8 @@ export default async function DownloadPage() {
         <div className="preview-wrap reveal">
           <div className="preview-content">
             <div className="preview-left reveal-left">
-              <div className="sec-label reveal" style={{ color: "#a78bfa" }}>ใช้งานอย่างไร</div>
-              <h2 className="sec-title reveal">3 ขั้นตอน<br /><span className="grad-text">จากเปิดโปรแกรมถึงขึ้นจอไลฟ์</span></h2>
+              <div className="sec-label reveal" style={{ color: "#a78bfa" }}>{t.howLabel}</div>
+              <h2 className="sec-title reveal">{t.howTitle}<br /><span className="grad-text">{t.howTitleAccent}</span></h2>
               <div className="steps-cards" style={{ marginTop: 20 }}>
                 {workflow.map((w, i) => (
                   <div key={w.num} className="step-new-card reveal" style={{ transitionDelay: `${i * 0.12}s`, padding: "16px 18px" }}>
@@ -152,7 +164,7 @@ export default async function DownloadPage() {
                   <span className="preview-screen-title">Tikkies Tools</span>
                 </div>
                 { }
-                <Media src="/tikkies-preview.png" alt="หน้าจอโปรแกรม Tikkies Tools" width={1512} height={893} sizes="(max-width: 900px) 92vw, 560px" style={{ width: "100%", height: "auto", display: "block" }} />
+                <Media src="/tikkies-preview.png" alt={d.common.screenshotAlt} width={1512} height={893} sizes="(max-width: 900px) 92vw, 560px" style={{ width: "100%", height: "auto", display: "block" }} />
               </div>
             </div>
           </div>
@@ -163,9 +175,9 @@ export default async function DownloadPage() {
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="prog-wrap reveal">
           <div style={{ marginBottom: 32 }}>
-            <div className="sec-label reveal" style={{ color: "#a78bfa" }}>ติดตั้งง่าย</div>
-            <h2 className="sec-title reveal">4 ขั้นตอน ก็เริ่มใช้ได้เลย</h2>
-            <p className="sec-desc">ดาวน์โหลดไฟล์เดียว ติดตั้งเสร็จทำตามนี้ ถ้าติดตรงไหนทีมงานช่วยตั้งค่าให้</p>
+            <div className="sec-label reveal" style={{ color: "#a78bfa" }}>{t.installLabel}</div>
+            <h2 className="sec-title reveal">{t.installTitle}</h2>
+            <p className="sec-desc">{t.installDesc}</p>
           </div>
           <div className="card-grid cols-2">
             {installSteps.map((s, i) => (
@@ -185,18 +197,18 @@ export default async function DownloadPage() {
       <section className="sec-dark">
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div className="games-header reveal">
-            <div className="games-badge">เกม / โปรเจกต์ที่รองรับ</div>
-            <h2 className="games-title">มีชุดกฎสำเร็จรูปให้</h2>
-            <div className="games-subtitle">กดนำเข้าในโปรแกรมครั้งเดียวก็ไลฟ์ได้เลย แล้วค่อยแก้ให้เข้ากับสไตล์ตัวเองทีหลัง เพิ่มเกมใหม่ให้เรื่อยๆ</div>
+            <div className="games-badge">{t.presetsBadge}</div>
+            <h2 className="games-title">{t.presetsTitle}</h2>
+            <div className="games-subtitle">{t.presetsSubtitle}</div>
           </div>
           <div className="card-grid">
             {presets.map((p, i) => {
               const cover = covers.get(p.slug);
-              const href = covers.has(p.slug) ? `/games/${p.slug}` : undefined; // only link games that are published
+              const href = covers.has(p.slug) ? localePath(lang, `/games/${p.slug}`) : undefined; // only link games that are published
               const image = (
                 <>
                   {cover ? (
-                    <Media className="game-cover" src={cover} alt={`${p.name} ชุดกฎสำเร็จรูป`} fill sizes="(max-width: 600px) 92vw, (max-width: 900px) 46vw, 350px" />
+                    <Media className="game-cover" src={cover} alt={t.presetAlt(p.name)} fill sizes="(max-width: 600px) 92vw, (max-width: 900px) 46vw, 350px" />
                   ) : (
                     <div className="game-img-placeholder" />
                   )}
@@ -218,10 +230,10 @@ export default async function DownloadPage() {
                     <div className="game-name">{p.name}</div>
                     <div className="game-genre">{p.sub}</div>
                     <div className="game-bottom">
-                      <div className="game-rating"><span className="game-star"><Icon name="zap" size={13} /></span>{p.rules} กฎพร้อมใช้</div>
+                      <div className="game-rating"><span className="game-star"><Icon name="zap" size={13} /></span>{p.rules} {t.presetRules}</div>
                       {href && (
                         <Link href={href} className="game-detail-btn">
-                          ดูเกม
+                          {t.presetView}
                         </Link>
                       )}
                     </div>
@@ -237,9 +249,9 @@ export default async function DownloadPage() {
       <section className="section">
         <div className="sec-top reveal">
           <div>
-            <div className="sec-label reveal" style={{ color: "#8b5cf6" }}>โปรแกรมที่ใช้งานร่วมกันได้</div>
-            <h2 className="sec-title reveal">ใช้กับโปรแกรมไลฟ์และเกมที่คุณใช้อยู่แล้ว</h2>
-            <p className="sec-desc">ไม่ต้องเปลี่ยนเครื่องมือ โอเวอร์เลย์ทุกตัวเป็นลิงก์ ส่วนเกมสั่งผ่านปุ่มคีย์บอร์ด</p>
+            <div className="sec-label reveal" style={{ color: "#8b5cf6" }}>{t.compatLabel}</div>
+            <h2 className="sec-title reveal">{t.compatTitle}</h2>
+            <p className="sec-desc">{t.compatDesc}</p>
           </div>
         </div>
         <div className="card-grid cols-4">
@@ -248,7 +260,7 @@ export default async function DownloadPage() {
               <div className="compat-icon" style={{ background: c.color }}>{c.name.slice(0, 2).toUpperCase()}</div>
               <div>
                 <div className="compat-name">{c.name}</div>
-                <div className="compat-desc">{c.desc}</div>
+                <div className="compat-desc">{t.compat[i]}</div>
               </div>
             </div>
           ))}
@@ -258,15 +270,14 @@ export default async function DownloadPage() {
       {/* ===== FAQ ===== */}
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="faq-header reveal">
-          <div className="faq-badge">คำถามที่พบบ่อย</div>
-          <h2 className="faq-title">เกี่ยวกับโปรแกรม</h2>
-          <div className="faq-subtitle">ยังไม่พบคำตอบ ติดต่อทีมงาน AJENT ได้เลย</div>
+          <div className="faq-badge">{t.faqBadge}</div>
+          <h2 className="faq-title">{t.faqTitle}</h2>
+          <div className="faq-subtitle">{t.faqSubtitle}</div>
         </div>
         <Faq items={faqs} />
       </section>
 
       </main>
-      <Footer />
     </>
   );
 }

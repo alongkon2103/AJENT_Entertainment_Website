@@ -3,22 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { socials, texts } from "./data";
+import { socials } from "./data";
+import type { Dict } from "./dictionaries/th";
+import { localePath, type Locale } from "./i18n";
 
-/* ===== Shared UI state (dark mode + language) — lives in the root layout so it survives page changes ===== */
-type UI = { isDark: boolean; isEN: boolean; toggleDark: () => void; toggleLang: () => void };
-const UIContext = createContext<UI>({ isDark: false, isEN: false, toggleDark: () => {}, toggleLang: () => {} });
+/* ===== Shared UI state (dark mode) — lives in the root layout so it survives page and language changes ===== */
+type UI = { isDark: boolean; toggleDark: () => void };
+const UIContext = createContext<UI>({ isDark: false, toggleDark: () => {} });
 
 export function UIProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState(false);
-  const [isEN, setIsEN] = useState(false);
 
   useEffect(() => {
     document.body.classList.toggle("dark", isDark);
   }, [isDark]);
 
   return (
-    <UIContext.Provider value={{ isDark, isEN, toggleDark: () => setIsDark((d) => !d), toggleLang: () => setIsEN((e) => !e) }}>
+    <UIContext.Provider value={{ isDark, toggleDark: () => setIsDark((d) => !d) }}>
       {children}
     </UIContext.Provider>
   );
@@ -50,10 +51,15 @@ export function Arrow({ size }: { size?: number }) {
 /* ===== NAV ===== */
 const navItems = ["home", "game", "program", "faq", "contact"] as const;
 
-export function Nav() {
-  const { isDark, isEN, toggleDark, toggleLang } = useUI();
-  const t = isEN ? texts.en : texts.th;
-  const onHome = usePathname() === "/";
+export function Nav({ lang, t }: { lang: Locale; t: Dict["nav"] }) {
+  const { isDark, toggleDark } = useUI();
+  const pathname = usePathname();
+  const onHome = pathname === `/${lang}`;
+  const other: Locale = lang === "th" ? "en" : "th";
+  // The root layout isn't re-rendered on a client-side language switch, so keep <html lang> in sync here.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
   const [active, setActive] = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
   const go = (id: string) => () => {
@@ -64,13 +70,13 @@ export function Nav() {
   return (
     <nav className="nav">
       <div className="nav-bar">
-        <Link className="nav-logo" href="/#home" onClick={go("home")}>
+        <Link className="nav-logo" href={localePath(lang, "/#home")} onClick={go("home")}>
           <div className="nav-logo-icon">AJ</div>
           <div className="nav-logo-t">AJENT <span>ENT.</span></div>
         </Link>
         <div className={`nav-links${menuOpen ? " open" : ""}`}>
           {navItems.map((id) => (
-            <Link key={id} className={`nav-link${onHome && active === id ? " active" : ""}`} href={`/#${id}`} onClick={go(id)}>
+            <Link key={id} className={`nav-link${onHome && active === id ? " active" : ""}`} href={localePath(lang, `/#${id}`)} onClick={go(id)}>
               {t[id]}
             </Link>
           ))}
@@ -78,9 +84,16 @@ export function Nav() {
         <div className="nav-spacer" />
         <div className="nav-right">
           <div className="nav-sep" />
-          <button type="button" className="nav-lang" onClick={toggleLang}>
-            {isEN ? "EN" : "TH"}
-          </button>
+          <Link
+            className="nav-lang"
+            href={pathname.replace(/^\/(th|en)(?=\/|$)/, `/${other}`)}
+            hrefLang={other}
+            aria-label={t.switchLang}
+            title={t.switchLang}
+            scroll={false}
+          >
+            {lang.toUpperCase()}
+          </Link>
           <button type="button" className="nav-dark" aria-label="Toggle dark mode" onClick={toggleDark}>
             <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {isDark ? (
@@ -133,7 +146,8 @@ export function Faq({ items }: { items: { q: string; a: string }[] }) {
 }
 
 /* ===== FOOTER ===== */
-export function Footer() {
+export function Footer({ lang, t }: { lang: Locale; t: Dict["footer"] }) {
+  const to = (path: string) => localePath(lang, path);
   return (
     <footer id="contact" className="footer-wrap">
       <div className="footer">
@@ -146,20 +160,20 @@ export function Footer() {
                 <div style={{ fontSize: 10, color: "#6a5a8a" }}>TikTok Live &amp; Game Hub</div>
               </div>
             </div>
-            <p style={{ fontSize: 13, color: "#6a5a8a", lineHeight: 1.7, maxWidth: 280 }}>AJENT ENTERTAINMENT สังกัดที่ครบครัน พร้อมเครื่องมือเชื่อมต่อเกม สำหรับสตรีมเมอร์ TikTok Live ทุกระดับ</p>
+            <p style={{ fontSize: 13, color: "#6a5a8a", lineHeight: 1.7, maxWidth: 280 }}>{t.about}</p>
           </div>
           <div>
-            <div className="footer-col-t">เมนูหลัก</div>
-            <Link className="footer-link" href="/#home">หน้าแรก</Link>
-            <Link className="footer-link" href="/#game">เกมในสังกัด</Link>
-            <Link className="footer-link" href="/#program">โปรแกรมเชื่อม</Link>
-            <Link className="footer-link" href="/games">เกมทั้งหมด</Link>
-            <Link className="footer-link" href="/news">ข่าวสาร</Link>
-            <Link className="footer-link" href="/download">ดาวน์โหลดโปรแกรม</Link>
-            <Link className="footer-link" href="/download#try">ทดลองใช้โปรแกรม</Link>
+            <div className="footer-col-t">{t.menu}</div>
+            <Link className="footer-link" href={to("/#home")}>{t.links.home}</Link>
+            <Link className="footer-link" href={to("/#game")}>{t.links.game}</Link>
+            <Link className="footer-link" href={to("/#program")}>{t.links.program}</Link>
+            <Link className="footer-link" href={to("/games")}>{t.links.games}</Link>
+            <Link className="footer-link" href={to("/news")}>{t.links.news}</Link>
+            <Link className="footer-link" href={to("/download")}>{t.links.download}</Link>
+            <Link className="footer-link" href={to("/download#try")}>{t.links.try}</Link>
           </div>
           <div>
-            <div className="footer-col-t">ติดต่อเรา</div>
+            <div className="footer-col-t">{t.contact}</div>
             <div className="footer-socials">
               {socials.map((s) => {
                 const external = s.href.startsWith("http");

@@ -3,34 +3,39 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getGame } from "@/lib/content";
 import { absoluteUrl, breadcrumbLd, pageMetadata, snippet } from "@/lib/seo";
-import { GameCard } from "../../cards";
-import { lazyRichImages, Media } from "../../media";
-import { JsonLd } from "../../json-ld";
-import { Arrow, Footer, Nav, RevealObserver } from "../../ui";
+import { GameCard } from "../../../cards";
+import { getDictionary } from "../../../dictionaries";
+import { isLocale, localePath } from "../../../i18n";
+import { lazyRichImages, Media } from "../../../media";
+import { JsonLd } from "../../../json-ld";
+import { Arrow, RevealObserver } from "../../../ui";
 
 /** Keeps "<title> | AJENT" inside Google's display width, dropping words instead of cutting mid-phrase. */
-function gameTitle(name: string, platform: string) {
-  const options = platform
-    ? [`${name} เกม ${platform} สำหรับ TikTok Live`, `${name} เกม ${platform} TikTok Live`, `${name} เกม ${platform}`, name]
-    : [`${name} เกมสำหรับ TikTok Live`, `${name} เกม TikTok Live`, name];
-  return options.find((t) => t.length <= 52) ?? name.slice(0, 52);
-}
+const gameTitle = (candidates: string[], name: string) => [...candidates, name].find((t) => t.length <= 52) ?? name.slice(0, 52);
 
-export async function generateMetadata({ params }: PageProps<"/games/[slug]">): Promise<Metadata> {
-  const data = await getGame((await params).slug);
-  if (!data) return { title: "ไม่พบเกม", robots: { index: false } };
+export async function generateMetadata({ params }: PageProps<"/[lang]/games/[slug]">): Promise<Metadata> {
+  const { lang, slug } = await params;
+  if (!isLocale(lang)) return {};
+  const t = getDictionary(lang).game;
+  const data = await getGame(slug, lang);
+  if (!data) return { title: t.notFound, robots: { index: false } };
   const { game } = data;
   const platform = game.category?.isActive ? game.category.name : "";
   return pageMetadata({
-    title: gameTitle(game.name, platform),
-    description: snippet([game.excerpt || `${game.name} เกมสำหรับสตรีมเมอร์ TikTok Live`, game.genre].filter(Boolean).join(" · ")),
+    lang,
+    title: gameTitle(t.titles(game.name, platform), game.name),
+    description: snippet([game.excerpt || t.fallbackDescription(game.name), game.genre].filter(Boolean).join(" · ")),
     path: `/games/${game.slug}`,
     image: game.coverImage ? { url: game.coverImage, alt: game.name } : undefined,
   });
 }
 
-export default async function GameDetailPage({ params }: PageProps<"/games/[slug]">) {
-  const data = await getGame((await params).slug);
+export default async function GameDetailPage({ params }: PageProps<"/[lang]/games/[slug]">) {
+  const { lang, slug } = await params;
+  if (!isLocale(lang)) notFound();
+  const d = getDictionary(lang);
+  const t = d.game;
+  const data = await getGame(slug, lang);
   if (!data) notFound();
   const { game, more } = data;
   const cat = game.category?.isActive ? game.category : null;
@@ -40,13 +45,13 @@ export default async function GameDetailPage({ params }: PageProps<"/games/[slug
     "@context": "https://schema.org",
     "@type": "VideoGame",
     name: game.name,
-    url: absoluteUrl(`/games/${game.slug}`),
+    url: absoluteUrl(localePath(lang, `/games/${game.slug}`)),
     description: game.excerpt || undefined,
     image: game.coverImage ? [absoluteUrl(game.coverImage)] : undefined,
     genre: studio ? genreParts.slice(0, -1) : genreParts,
     gamePlatform: cat?.name,
     applicationCategory: "Game",
-    inLanguage: "th",
+    inLanguage: lang,
     keywords: [game.name, cat?.name, "TikTok Live", "TikFinity", "Interactive LIVE"].filter(Boolean).join(", "),
     ...(studio && { author: { "@type": "Organization", name: studio }, publisher: { "@type": "Organization", name: studio } }),
     ...(game.playUrl && { sameAs: game.playUrl }),
@@ -54,15 +59,14 @@ export default async function GameDetailPage({ params }: PageProps<"/games/[slug
 
   return (
     <>
-      <Nav />
-      <JsonLd data={[gameLd, breadcrumbLd([["เกมในสังกัด", "/games"], [game.name, `/games/${game.slug}`]])]} />
+      <JsonLd data={[gameLd, breadcrumbLd(lang, [[d.games.crumb, "/games"], [game.name, `/games/${game.slug}`]])]} />
       <RevealObserver />
       <main>
       <section className="detail-hero">
         <div className="detail-hero-inner">
           <div>
             <div className="detail-crumb">
-              <Link href="/games">เกมในสังกัด</Link> / {game.name}
+              <Link href={localePath(lang, "/games")}>{d.games.crumb}</Link> / {game.name}
             </div>
             <div className="detail-chips">
               {cat && (
@@ -89,11 +93,11 @@ export default async function GameDetailPage({ params }: PageProps<"/games/[slug
             <div className="detail-actions">
               {game.playUrl && (
                 <a className="preview-btn" href={game.playUrl} target="_blank" rel="noopener noreferrer">
-                  เข้าเล่นเกม <Arrow size={14} />
+                  {t.play} <Arrow size={14} />
                 </a>
               )}
-              <Link className="btn-ghost detail-ghost" href="/download">
-                ดาวน์โหลดโปรแกรมเชื่อมต่อ
+              <Link className="btn-ghost detail-ghost" href={localePath(lang, "/download")}>
+                {t.download}
               </Link>
             </div>
           </div>
@@ -115,21 +119,20 @@ export default async function GameDetailPage({ params }: PageProps<"/games/[slug
         <section className="sec-dark">
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
             <div className="games-header reveal">
-              <div className="games-badge">เกมอื่นในสังกัด</div>
+              <div className="games-badge">{t.moreBadge}</div>
               <h2 className="games-title">
-                ลองดูเกม<span>อื่นๆ</span>
+                {t.moreTitle}<span>{t.moreTitleAccent}</span>
               </h2>
             </div>
             <div className="games-grid">
               {more.map((g, i) => (
-                <GameCard key={g.id} game={g} style={{ transitionDelay: `${i * 0.1}s` }} />
+                <GameCard key={g.id} lang={lang} game={g} style={{ transitionDelay: `${i * 0.1}s` }} />
               ))}
             </div>
           </div>
         </section>
       )}
       </main>
-      <Footer />
     </>
   );
 }

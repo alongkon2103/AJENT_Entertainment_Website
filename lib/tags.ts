@@ -11,5 +11,6 @@ export const isTagKind = (k: string): k is TagKind => Object.hasOwn(TAG_KINDS, k
 /** Hex color + 2-digit alpha, for soft chip backgrounds ("#8b5cf6" -> "#8b5cf61f"). */
 export const tint = (hex: string, alpha = "1f") => (/^#[0-9a-f]{6}$/i.test(hex) ? hex + alpha : hex);
 
-export const thaiDate = (d: Date) =>
-  new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Bangkok" }).format(d);
+export const formatDate = (d: Date, lang: "th" | "en" = "th") =>
+  new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Bangkok" }).format(d);
+export const thaiDate = (d: Date) => formatDate(d, "th");

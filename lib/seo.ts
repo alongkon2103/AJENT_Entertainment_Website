@@ -1,44 +1,43 @@
 import type { Metadata } from "next";
 import { socials } from "@/app/data";
+import { getDictionary } from "@/app/dictionaries";
+import { defaultLocale, localePath, locales, type Locale } from "@/app/i18n";
 
 /** Set SITE_URL to the real domain in production (canonical URLs, sitemap, share cards and JSON-LD all use it). */
 const siteUrl = (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+const th = getDictionary("th");
 
 export const SITE = {
   name: "AJENT ENTERTAINMENT",
   url: siteUrl,
-  locale: "th_TH",
-  language: "th-TH",
-  title: "สังกัด TikTok Live สายเกม | AJENT ENTERTAINMENT",
-  description:
-    "สังกัด TikTok Live สายเกม สมาชิกได้ใช้เกม Roblox, Minecraft และโปรแกรม Tikkies Tools ที่เชื่อมต่อของขวัญ TikTok พร้อมทีมซัพพอร์ตดูแลตั้งแต่เริ่มไลฟ์",
-  keywords: [
-    "สังกัด TikTok",
-    "สังกัด TikTok Live",
-    "สังกัดสตรีมเมอร์",
-    "สตรีมเมอร์ TikTok",
-    "ไลฟ์สด TikTok",
-    "เกม TikTok Live",
-    "เกม Roblox TikTok Live",
-    "โปรแกรมรันของขวัญ TikTok",
-    "Interactive LIVE",
-    "TikFinity",
-    "Tikkies Tools",
-    "AJENT ENTERTAINMENT",
-  ],
+  // Thai defaults for pages outside /th and /en (admin, 404, manifest)
+  title: th.site.title,
+  description: th.site.description,
+  keywords: th.site.keywords,
   email: "ajent.entertainment@gmail.com",
-  ogImage: { url: "/og-default.jpg", width: 1200, height: 630, alt: "AJENT ENTERTAINMENT สังกัด TikTok Live สายเกม" },
+  ogImage: { url: "/og-default.jpg", width: 1200, height: 630, alt: th.site.ogAlt },
 };
 
+export const ogLocale = { th: "th_TH", en: "en_US" } satisfies Record<Locale, string>;
+export const htmlLang = { th: "th-TH", en: "en-US" } satisfies Record<Locale, string>;
+
 export const absoluteUrl = (path = "/") => (/^https?:\/\//.test(path) ? path : new URL(path, `${SITE.url}/`).toString());
+
+/** hreflang map for an unprefixed path: every locale plus x-default (Thai). */
+export const languageAlternates = (path: string) => ({
+  ...Object.fromEntries(locales.map((l) => [l, localePath(l, path)])),
+  "x-default": localePath(defaultLocale, path),
+});
 
 type OgImage = { url: string; width?: number; height?: number; alt?: string };
 
 /**
- * Per-page metadata: canonical URL + Open Graph + Twitter card.
+ * Per-page metadata: canonical URL, hreflang alternates, Open Graph and Twitter card.
+ * `path` is unprefixed ("/games"); the locale prefix is added here.
  * Next merges openGraph/twitter shallowly, so every page rebuilds them here instead of inheriting from the layout.
  */
 export function pageMetadata(p: {
+  lang: Locale;
   title: string;
   description: string;
   path: string;
@@ -46,13 +45,22 @@ export function pageMetadata(p: {
   absoluteTitle?: boolean;
   article?: { publishedTime: Date; modifiedTime: Date; section?: string };
 }): Metadata {
-  const image = p.image ?? SITE.ogImage;
+  const image = p.image ?? { ...SITE.ogImage, alt: getDictionary(p.lang).site.ogAlt };
   const fullTitle = p.absoluteTitle ? p.title : `${p.title} | AJENT`;
-  const base = { url: p.path, siteName: SITE.name, locale: SITE.locale, title: fullTitle, description: p.description, images: [image] };
+  const url = localePath(p.lang, p.path);
+  const base = {
+    url,
+    siteName: SITE.name,
+    locale: ogLocale[p.lang],
+    alternateLocale: locales.filter((l) => l !== p.lang).map((l) => ogLocale[l]),
+    title: fullTitle,
+    description: p.description,
+    images: [image],
+  };
   return {
     title: p.absoluteTitle ? { absolute: p.title } : p.title,
     description: p.description,
-    alternates: { canonical: p.path },
+    alternates: { canonical: url, languages: languageAlternates(p.path) },
     openGraph: p.article
       ? {
           ...base,
@@ -79,7 +87,7 @@ export const snippet = (text: string, max = 155) => {
 
 const ORG_ID = `${SITE.url}/#organization`;
 
-export const organizationLd = () => ({
+export const organizationLd = (lang: Locale) => ({
   "@context": "https://schema.org",
   "@type": "Organization",
   "@id": ORG_ID,
@@ -88,27 +96,33 @@ export const organizationLd = () => ({
   url: SITE.url,
   logo: { "@type": "ImageObject", url: absoluteUrl("/logo.png"), width: 512, height: 512 },
   image: absoluteUrl(SITE.ogImage.url),
-  description: SITE.description,
+  description: getDictionary(lang).site.description,
   email: SITE.email,
   sameAs: socials.filter((s) => s.href.startsWith("http")).map((s) => s.href),
   contactPoint: [{ "@type": "ContactPoint", contactType: "customer support", email: SITE.email, availableLanguage: ["th", "en"] }],
 });
 
-export const websiteLd = () => ({
+export const websiteLd = (lang: Locale) => ({
   "@context": "https://schema.org",
   "@type": "WebSite",
   "@id": `${SITE.url}/#website`,
   url: SITE.url,
   name: SITE.name,
-  description: SITE.description,
-  inLanguage: SITE.language,
+  description: getDictionary(lang).site.description,
+  inLanguage: htmlLang[lang],
   publisher: { "@id": ORG_ID },
 });
 
-export const breadcrumbLd = (items: [name: string, path: string][]) => ({
+/** Paths are unprefixed; "Home" is added first. */
+export const breadcrumbLd = (lang: Locale, items: [name: string, path: string][]) => ({
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
-  itemListElement: [["หน้าแรก", "/"], ...items].map(([name, path], i) => ({ "@type": "ListItem", position: i + 1, name, item: absoluteUrl(path) })),
+  itemListElement: [[getDictionary(lang).site.home, "/"], ...items].map(([name, path], i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name,
+    item: absoluteUrl(localePath(lang, path)),
+  })),
 });
 
 export const faqLd = (faqs: { q: string; a: string }[]) => ({
@@ -117,10 +131,10 @@ export const faqLd = (faqs: { q: string; a: string }[]) => ({
   mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
 });
 
-export const itemListLd = (items: { name: string; path: string }[]) => ({
+export const itemListLd = (lang: Locale, items: { name: string; path: string }[]) => ({
   "@context": "https://schema.org",
   "@type": "ItemList",
-  itemListElement: items.map((it, i) => ({ "@type": "ListItem", position: i + 1, name: it.name, url: absoluteUrl(it.path) })),
+  itemListElement: items.map((it, i) => ({ "@type": "ListItem", position: i + 1, name: it.name, url: absoluteUrl(localePath(lang, it.path)) })),
 });
 
 export const publisherRef = { "@id": ORG_ID };

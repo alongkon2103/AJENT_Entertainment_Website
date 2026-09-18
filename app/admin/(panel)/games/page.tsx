@@ -136,7 +136,7 @@ export default async function AdminGamesPage({ searchParams }: PageProps<"/admin
                     <td>
                       <div className="adm-row-actions">
                         {g.isPublished && (
-                          <a href={`/games/${g.slug}`} target="_blank" className="adm-icon-btn" title="ดูบนเว็บ" aria-label="ดูบนเว็บ">
+                          <a href={`/th/games/${g.slug}`} target="_blank" className="adm-icon-btn" title="ดูบนเว็บ" aria-label="ดูบนเว็บ">
                             <ExternalLink size={16} />
                           </a>
                         )}

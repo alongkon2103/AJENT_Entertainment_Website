@@ -2,18 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getNews } from "@/lib/content";
-import { absoluteUrl, breadcrumbLd, pageMetadata, publisherRef, SITE, snippet } from "@/lib/seo";
-import { thaiDate } from "@/lib/tags";
-import { NewsCard, NewsTag } from "../../cards";
-import { lazyRichImages, Media } from "../../media";
-import { JsonLd } from "../../json-ld";
-import { Footer, Nav, RevealObserver } from "../../ui";
+import { absoluteUrl, breadcrumbLd, htmlLang, pageMetadata, publisherRef, SITE, snippet } from "@/lib/seo";
+import { formatDate } from "@/lib/tags";
+import { NewsCard, NewsTag } from "../../../cards";
+import { getDictionary } from "../../../dictionaries";
+import { isLocale, localePath } from "../../../i18n";
+import { lazyRichImages, Media } from "../../../media";
+import { JsonLd } from "../../../json-ld";
+import { RevealObserver } from "../../../ui";
 
-export async function generateMetadata({ params }: PageProps<"/news/[slug]">): Promise<Metadata> {
-  const data = await getNews((await params).slug);
-  if (!data) return { title: "ไม่พบข่าว", robots: { index: false } };
+export async function generateMetadata({ params }: PageProps<"/[lang]/news/[slug]">): Promise<Metadata> {
+  const { lang, slug } = await params;
+  if (!isLocale(lang)) return {};
+  const data = await getNews(slug, lang);
+  if (!data) return { title: getDictionary(lang).news.notFound, robots: { index: false } };
   const { item } = data;
   return pageMetadata({
+    lang,
     title: snippet(item.title, 50),
     description: snippet(item.excerpt || item.title),
     path: `/news/${item.slug}`,
@@ -22,8 +27,11 @@ export async function generateMetadata({ params }: PageProps<"/news/[slug]">): P
   });
 }
 
-export default async function NewsDetailPage({ params }: PageProps<"/news/[slug]">) {
-  const data = await getNews((await params).slug);
+export default async function NewsDetailPage({ params }: PageProps<"/[lang]/news/[slug]">) {
+  const { lang, slug } = await params;
+  if (!isLocale(lang)) notFound();
+  const t = getDictionary(lang).news;
+  const data = await getNews(slug, lang);
   if (!data) notFound();
   const { item, more } = data;
   const cat = item.category?.isActive ? item.category : null;
@@ -36,22 +44,21 @@ export default async function NewsDetailPage({ params }: PageProps<"/news/[slug]
     datePublished: item.publishedAt.toISOString(),
     dateModified: item.updatedAt.toISOString(),
     articleSection: cat?.name,
-    inLanguage: SITE.language,
-    mainEntityOfPage: absoluteUrl(`/news/${item.slug}`),
+    inLanguage: htmlLang[lang],
+    mainEntityOfPage: absoluteUrl(localePath(lang, `/news/${item.slug}`)),
     author: { "@type": "Organization", name: SITE.name, url: SITE.url },
     publisher: publisherRef,
   };
 
   return (
     <>
-      <Nav />
-      <JsonLd data={[articleLd, breadcrumbLd([["ข่าวสาร", "/news"], [item.title, `/news/${item.slug}`]])]} />
+      <JsonLd data={[articleLd, breadcrumbLd(lang, [[t.crumb, "/news"], [item.title, `/news/${item.slug}`]])]} />
       <RevealObserver />
       <main>
       <section className="page-hero article-hero">
         <div className="page-hero-inner article-head">
           <div className="detail-crumb light">
-            <Link href="/news">ข่าวสาร &amp; อัปเดต</Link> / {thaiDate(item.publishedAt)}
+            <Link href={localePath(lang, "/news")}>{t.backCrumb}</Link> / {formatDate(item.publishedAt, lang)}
           </div>
           {cat && <NewsTag name={cat.name} color={cat.color} />}
           <h1 className="page-title" style={{ marginTop: 12 }}>
@@ -78,22 +85,21 @@ export default async function NewsDetailPage({ params }: PageProps<"/news/[slug]
         <section className="section" style={{ paddingTop: 0 }}>
           <div className="sec-top reveal">
             <div>
-              <div className="sec-label" style={{ color: "#8b5cf6" }}>ข่าวอื่นๆ</div>
-              <p className="sec-desc">อัปเดตล่าสุดจาก AJENT</p>
+              <div className="sec-label" style={{ color: "#8b5cf6" }}>{t.moreLabel}</div>
+              <p className="sec-desc">{t.moreDesc}</p>
             </div>
-            <Link className="sec-link" href="/news">
-              ดูทั้งหมด &rarr;
+            <Link className="sec-link" href={localePath(lang, "/news")}>
+              {getDictionary(lang).common.viewAll} &rarr;
             </Link>
           </div>
           <div className="news-grid">
             {more.map((n, i) => (
-              <NewsCard key={n.id} item={n} style={{ transitionDelay: `${i * 0.1}s` }} />
+              <NewsCard key={n.id} lang={lang} item={n} style={{ transitionDelay: `${i * 0.1}s` }} />
             ))}
           </div>
         </section>
       )}
       </main>
-      <Footer />
     </>
   );
 }

@@ -128,7 +128,7 @@ export default async function AdminNewsPage({ searchParams }: PageProps<"/admin/
                       <td>
                         <div className="adm-row-actions">
                           {n.isPublished && !scheduled && (
-                            <a href={`/news/${n.slug}`} target="_blank" className="adm-icon-btn" title="ดูบนเว็บ" aria-label="ดูบนเว็บ">
+                            <a href={`/th/news/${n.slug}`} target="_blank" className="adm-icon-btn" title="ดูบนเว็บ" aria-label="ดูบนเว็บ">
                               <ExternalLink size={16} />
                             </a>
                           )}

@@ -328,6 +328,9 @@ function TagForm({ kind, tag, usage, onCreated }: { kind: TagKind; tag?: Tag; us
       <Field label="ชื่อ">
         <input className="adm-input" name="name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={60} />
       </Field>
+      <Field label="ชื่อ (EN)">
+        <input className="adm-input" name="nameEn" defaultValue={tag?.nameEn} placeholder="เว้นว่าง = ใช้ชื่อไทย" maxLength={60} />
+      </Field>
       <Field label="Slug">
         <input className="adm-input" name="slug" defaultValue={tag?.slug} placeholder="สร้างจากชื่อ" maxLength={80} />
       </Field>
