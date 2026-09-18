@@ -116,12 +116,12 @@ export const tikkies = {
     { num: "04", title: "นำเข้าเพรีเซ็ตหรือตั้งกฎเอง", desc: "แท็บเพรีเซ็ตมีชุดกฎสำเร็จรูปตามเกม กดนำเข้าแล้วแก้ต่อได้ทันที ทีมงานช่วยตั้งค่าให้ได้" },
   ],
   presets: [
-    { name: "Judy Smooth", sub: "Roblox · Preset 1", rules: 14, bg: "linear-gradient(135deg,#1a1a4a,#2a1860)" },
-    { name: "AC Hyper Run", sub: "Roblox · Preset 1", rules: 17, bg: "linear-gradient(135deg,#2a1050,#4a1060)" },
-    { name: "Judy Rush", sub: "Roblox · Judy Rush", rules: 13, bg: "linear-gradient(135deg,#0a2a1a,#1a4a2a)" },
-    { name: "Judy Jump", sub: "Roblox · Preset 1", rules: 16, bg: "linear-gradient(135deg,#1a1a4a,#3a1a5a)" },
-    { name: "AC Jump EVO", sub: "Roblox · Preset 1", rules: 17, bg: "linear-gradient(135deg,#2a1050,#3a1a5a)" },
-    { name: "Judy Legend", sub: "Roblox · Preset 1", rules: 16, bg: "linear-gradient(135deg,#1a1a4a,#4a1060)" },
+    { name: "Judy Smooth", slug: "judy-smooth", sub: "Roblox · Preset 1", rules: 14, bg: "linear-gradient(135deg,#1a1a4a,#2a1860)" },
+    { name: "AC Hyper Run", slug: "ac-hyper-run", sub: "Roblox · Preset 1", rules: 17, bg: "linear-gradient(135deg,#2a1050,#4a1060)" },
+    { name: "Judy Rush", slug: "judy-rush", sub: "Roblox · Judy Rush", rules: 13, bg: "linear-gradient(135deg,#0a2a1a,#1a4a2a)" },
+    { name: "Judy Jump", slug: "judy-jump", sub: "Roblox · Preset 1", rules: 16, bg: "linear-gradient(135deg,#1a1a4a,#3a1a5a)" },
+    { name: "AC Jump EVO", slug: "ac-jump-evo", sub: "Roblox · Preset 1", rules: 17, bg: "linear-gradient(135deg,#2a1050,#3a1a5a)" },
+    { name: "Judy Legend", slug: "judy-legend", sub: "Roblox · Preset 1", rules: 16, bg: "linear-gradient(135deg,#1a1a4a,#4a1060)" },
   ],
   compat: [
     { name: "OBS Studio", desc: "สั่งเปลี่ยนซีน ซ่อน/แสดงแหล่ง ผ่าน obs-websocket", color: "#302e31" },

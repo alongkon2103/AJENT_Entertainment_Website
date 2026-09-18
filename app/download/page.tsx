@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getGameCovers } from "@/lib/content";
 import { absoluteUrl, breadcrumbLd, faqLd, pageMetadata, snippet } from "@/lib/seo";
 import { tikkies } from "../data";
 import { Media } from "../media";
@@ -16,8 +17,9 @@ export const metadata = pageMetadata({
   image: { url: "/BannerTk.jpeg", width: 1024, height: 626, alt: "Tikkies Tools โปรแกรม TikTok LIVE Interactive" },
 });
 
-export default function DownloadPage() {
+export default async function DownloadPage() {
   const { app, intro, capabilities, workflow, installSteps, presets, compat, faqs } = tikkies;
+  const covers = await getGameCovers(presets.map((p) => p.slug));
   return (
     <>
       <Nav />
@@ -188,21 +190,45 @@ export default function DownloadPage() {
             <div className="games-subtitle">กดนำเข้าในโปรแกรมครั้งเดียวก็ไลฟ์ได้เลย แล้วค่อยแก้ให้เข้ากับสไตล์ตัวเองทีหลัง เพิ่มเกมใหม่ให้เรื่อยๆ</div>
           </div>
           <div className="card-grid">
-            {presets.map((p, i) => (
-              <div key={p.name} className="game-card reveal" style={{ transitionDelay: `${i * 0.1}s` }}>
-                <div className="game-img" style={{ background: p.bg }}>
+            {presets.map((p, i) => {
+              const cover = covers.get(p.slug);
+              const href = covers.has(p.slug) ? `/games/${p.slug}` : undefined; // only link games that are published
+              const image = (
+                <>
+                  {cover ? (
+                    <Media className="game-cover" src={cover} alt={`${p.name} ชุดกฎสำเร็จรูป`} fill sizes="(max-width: 600px) 92vw, (max-width: 900px) 46vw, 350px" />
+                  ) : (
+                    <div className="game-img-placeholder" />
+                  )}
                   <div className="game-platform game-platform-hot">HOT</div>
-                  <div className="game-img-placeholder" />
-                </div>
-                <div className="game-body">
-                  <div className="game-name">{p.name}</div>
-                  <div className="game-genre">{p.sub}</div>
-                  <div className="game-bottom">
-                    <div className="game-rating"><span className="game-star"><Icon name="zap" size={13} /></span>{p.rules} กฎพร้อมใช้</div>
+                </>
+              );
+              return (
+                <div key={p.name} className="game-card reveal" style={{ transitionDelay: `${i * 0.1}s` }}>
+                  {href ? (
+                    <Link href={href} className="game-img" style={{ background: p.bg }}>
+                      {image}
+                    </Link>
+                  ) : (
+                    <div className="game-img" style={{ background: p.bg }}>
+                      {image}
+                    </div>
+                  )}
+                  <div className="game-body">
+                    <div className="game-name">{p.name}</div>
+                    <div className="game-genre">{p.sub}</div>
+                    <div className="game-bottom">
+                      <div className="game-rating"><span className="game-star"><Icon name="zap" size={13} /></span>{p.rules} กฎพร้อมใช้</div>
+                      {href && (
+                        <Link href={href} className="game-detail-btn">
+                          ดูเกม
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

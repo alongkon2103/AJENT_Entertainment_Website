@@ -65,3 +65,10 @@ export const getNews = cache(async (slug: string) => {
   const more = await prisma.news.findMany({ where: { ...liveNews(), id: { not: item.id } }, include: newsInclude, orderBy: newsOrder, take: 4 });
   return { item, more };
 });
+
+/** Cover image per slug for published games (used by the Tikkies preset cards on /download). */
+export async function getGameCovers(slugs: string[]) {
+  await connection();
+  const rows = await prisma.game.findMany({ where: { slug: { in: slugs }, isPublished: true }, select: { slug: true, coverImage: true } });
+  return new Map(rows.map((r) => [r.slug, r.coverImage]));
+}
