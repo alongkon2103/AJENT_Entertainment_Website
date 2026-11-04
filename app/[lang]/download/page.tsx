@@ -1,3 +1,4 @@
+import { CONNECTION_PROGRAM_ENABLED } from "@/app/features";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,6 +14,7 @@ import { Arrow, Faq, RevealObserver } from "../../ui";
 import AppEmbed from "./AppEmbed";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/download">): Promise<Metadata> {
+  if (!CONNECTION_PROGRAM_ENABLED) notFound();
   const { lang } = await params;
   if (!isLocale(lang)) return {};
   const t = getDictionary(lang).download;
@@ -26,6 +28,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/download">
 }
 
 export default async function DownloadPage({ params }: PageProps<"/[lang]/download">) {
+  if (!CONNECTION_PROGRAM_ENABLED) notFound();
   const { lang } = await params;
   if (!isLocale(lang)) notFound();
   const d = getDictionary(lang);

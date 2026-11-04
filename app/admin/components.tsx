@@ -40,9 +40,9 @@ export function AdminSidebar() {
   return (
     <aside className="adm-side">
       <Link href="/admin" className="adm-brand">
-        <span className="nav-logo-icon">AJ</span>
+        <span className="nav-logo-icon">J</span>
         <span>
-          <b>AJENT</b> Admin
+          <b>JUDY</b> Admin
         </span>
       </Link>
       <nav className="adm-nav">

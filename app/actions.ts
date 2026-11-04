@@ -41,11 +41,11 @@ export async function joinAjent(raw: unknown, lang: unknown): Promise<JoinStatus
   const unix = Math.floor(now / 1000);
 
   const payload = {
-    username: "AJENT Website",
+    username: "JUDY Website",
     allowed_mentions: { parse: [] },
     embeds: [
       {
-        author: { name: "AJENT ENTERTAINMENT · ฟอร์มเข้าร่วมสังกัด" },
+        author: { name: "JUDY ENTERTAINMENT · ฟอร์มเข้าร่วมสังกัด" },
         title: "มีผู้สนใจเข้าร่วมสังกัดใหม่",
         url: profile,
         description: `[เปิดโปรไฟล์ @${handle.replace(/_/g, "\\_")} บน TikTok →](${profile})`,
@@ -56,7 +56,7 @@ export async function joinAjent(raw: unknown, lang: unknown): Promise<JoinStatus
           { name: "ภาษาเว็บ", value: lang === "EN" ? "English" : "ไทย", inline: true },
           { name: "เวลาที่ส่ง", value: `<t:${unix}:F> · <t:${unix}:R>` },
         ],
-        footer: { text: "ส่งจากหน้าแรกเว็บไซต์ AJENT" },
+        footer: { text: "ส่งจากหน้าแรกเว็บไซต์ JUDY" },
         timestamp: new Date(now).toISOString(),
       },
     ],

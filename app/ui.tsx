@@ -1,5 +1,6 @@
 "use client";
 
+import { CONNECTION_PROGRAM_ENABLED } from "@/app/features";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
@@ -71,11 +72,11 @@ export function Nav({ lang, t }: { lang: Locale; t: Dict["nav"] }) {
     <nav className="nav">
       <div className="nav-bar">
         <Link className="nav-logo" href={localePath(lang, "/#home")} onClick={go("home")}>
-          <div className="nav-logo-icon">AJ</div>
-          <div className="nav-logo-t">AJENT <span>ENT.</span></div>
+          <div className="nav-logo-icon">J</div>
+          <div className="nav-logo-t">JUDY <span>ENT.</span></div>
         </Link>
         <div className={`nav-links${menuOpen ? " open" : ""}`}>
-          {navItems.map((id) => (
+          {navItems.filter((id) => CONNECTION_PROGRAM_ENABLED || id !== "program").map((id) => (
             <Link key={id} className={`nav-link${onHome && active === id ? " active" : ""}`} href={localePath(lang, `/#${id}`)} onClick={go(id)}>
               {t[id]}
             </Link>
@@ -154,9 +155,9 @@ export function Footer({ lang, t }: { lang: Locale; t: Dict["footer"] }) {
         <div className="footer-top">
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <div className="nav-logo-icon" style={{ width: 34, height: 34, fontSize: 13 }}>AJ</div>
+              <div className="nav-logo-icon" style={{ width: 34, height: 34, fontSize: 13 }}>J</div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 14, color: "#fff" }}>AJENT ENTERTAINMENT</div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: "#fff" }}>JUDY ENTERTAINMENT</div>
                 <div style={{ fontSize: 10, color: "#6a5a8a" }}>TikTok Live &amp; Game Hub</div>
               </div>
             </div>
@@ -166,11 +167,11 @@ export function Footer({ lang, t }: { lang: Locale; t: Dict["footer"] }) {
             <div className="footer-col-t">{t.menu}</div>
             <Link className="footer-link" href={to("/#home")}>{t.links.home}</Link>
             <Link className="footer-link" href={to("/#game")}>{t.links.game}</Link>
-            <Link className="footer-link" href={to("/#program")}>{t.links.program}</Link>
+            {CONNECTION_PROGRAM_ENABLED && <Link className="footer-link" href={to("/#program")}>{t.links.program}</Link>}
             <Link className="footer-link" href={to("/games")}>{t.links.games}</Link>
             <Link className="footer-link" href={to("/news")}>{t.links.news}</Link>
-            <Link className="footer-link" href={to("/download")}>{t.links.download}</Link>
-            <Link className="footer-link" href={to("/download#try")}>{t.links.try}</Link>
+            {CONNECTION_PROGRAM_ENABLED && <Link className="footer-link" href={to("/download")}>{t.links.download}</Link>}
+            {CONNECTION_PROGRAM_ENABLED && <Link className="footer-link" href={to("/download#try")}>{t.links.try}</Link>}
           </div>
           <div>
             <div className="footer-col-t">{t.contact}</div>
@@ -198,7 +199,7 @@ export function Footer({ lang, t }: { lang: Locale; t: Dict["footer"] }) {
           </div>
         </div>
         <div className="footer-bottom">
-          <div className="footer-copy">&copy; 2026 AJENT ENTERTAINMENT. All rights reserved.</div>
+          <div className="footer-copy">&copy; 2026 JUDY ENTERTAINMENT. All rights reserved.</div>
           <div className="footer-copy">TikTok Live &amp; Game Hub</div>
         </div>
       </div>

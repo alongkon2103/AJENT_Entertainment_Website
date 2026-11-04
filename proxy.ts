@@ -1,3 +1,4 @@
+import { CONNECTION_PROGRAM_ENABLED } from "@/app/features";
 import { NextResponse, type NextRequest } from "next/server";
 import { defaultLocale, isLocale } from "@/app/i18n";
 import { isValidSession, SESSION_COOKIE } from "@/lib/session";
@@ -6,6 +7,9 @@ const LANG_COOKIE = "lang";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (!CONNECTION_PROGRAM_ENABLED && /^\/(?:app-demo|widgets|sfx)(?:\/|$)/.test(pathname)) {
+    return new NextResponse(null, { status: 404, headers: { "X-Robots-Tag": "noindex" } });
+  }
 
   // Every /admin request (pages and their RSC fetches) needs a valid session, except the login page.
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
@@ -39,4 +43,4 @@ export function proxy(request: NextRequest) {
 
 // Pages only: skip API routes, Next internals (/_next, /__nextjs...), uploaded files and anything with a
 // file extension (sitemap.xml, robots.txt, icons, /app-demo, /game-media ...).
-export const config = { matcher: ["/((?!api/|_|uploads/|.*\\.).*)"] };
+export const config = { matcher: ["/app-demo/:path*", "/widgets/:path*", "/sfx/:path*", "/((?!api/|_|uploads/|.*\\.).*)"] };

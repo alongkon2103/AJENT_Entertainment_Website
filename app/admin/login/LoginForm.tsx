@@ -10,7 +10,7 @@ export default function LoginForm() {
       <div className="adm-login-icon">
         <Lock size={26} />
       </div>
-      <h1 className="adm-title">AJENT Admin</h1>
+      <h1 className="adm-title">JUDY Admin</h1>
       <p className="adm-sub">จัดการเกม ข่าวสาร และหมวดหมู่ของเว็บไซต์</p>
       <SaveForm action={login} submitLabel="เข้าสู่ระบบ" className="adm-stack">
         <Field label="รหัสผ่านผู้ดูแล">

@@ -29,7 +29,7 @@ export default async function NewsListPage({ params }: PageProps<"/[lang]/news">
         <div className="page-hero-inner">
           <div className="faq-badge">{t.badge}</div>
           <h1 className="page-title">
-            {t.title} <span className="grad-text">AJENT</span>
+            {t.title} <span className="grad-text">JUDY</span>
           </h1>
           <p className="page-desc">{t.desc}</p>
         </div>

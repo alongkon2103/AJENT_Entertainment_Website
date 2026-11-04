@@ -8,7 +8,7 @@ const siteUrl = (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/+$/
 const th = getDictionary("th");
 
 export const SITE = {
-  name: "AJENT ENTERTAINMENT",
+  name: "JUDY ENTERTAINMENT",
   url: siteUrl,
   // Thai defaults for pages outside /th and /en (admin, 404, manifest)
   title: th.site.title,
@@ -46,7 +46,7 @@ export function pageMetadata(p: {
   article?: { publishedTime: Date; modifiedTime: Date; section?: string };
 }): Metadata {
   const image = p.image ?? { ...SITE.ogImage, alt: getDictionary(p.lang).site.ogAlt };
-  const fullTitle = p.absoluteTitle ? p.title : `${p.title} | AJENT`;
+  const fullTitle = p.absoluteTitle ? p.title : `${p.title} | JUDY`;
   const url = localePath(p.lang, p.path);
   const base = {
     url,
@@ -92,7 +92,7 @@ export const organizationLd = (lang: Locale) => ({
   "@type": "Organization",
   "@id": ORG_ID,
   name: SITE.name,
-  alternateName: ["AJent Entertainment", "AJENT"],
+  alternateName: ["JUDY Entertainment", "JUDY"],
   url: SITE.url,
   logo: { "@type": "ImageObject", url: absoluteUrl("/logo.png"), width: 512, height: 512 },
   image: absoluteUrl(SITE.ogImage.url),

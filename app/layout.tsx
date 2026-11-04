@@ -20,7 +20,7 @@ const inter = Inter({
 // hreflang and share cards via pageMetadata() in lib/seo.ts.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
-  title: { default: SITE.title, template: "%s | AJENT" },
+  title: { default: SITE.title, template: "%s | JUDY" },
   description: SITE.description,
   applicationName: SITE.name,
   keywords: SITE.keywords,
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
   openGraph: { type: "website", siteName: SITE.name, locale: "th_TH", title: SITE.title, description: SITE.description, images: [SITE.ogImage] },
   twitter: { card: "summary_large_image", title: SITE.title, description: SITE.description, images: [SITE.ogImage.url] },
-  appleWebApp: { capable: true, title: "AJENT", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "JUDY", statusBarStyle: "black-translucent" },
   ...(process.env.GOOGLE_SITE_VERIFICATION && { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }),
 };
 

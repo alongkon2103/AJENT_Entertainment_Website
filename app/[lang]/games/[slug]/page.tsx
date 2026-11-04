@@ -1,3 +1,4 @@
+import { CONNECTION_PROGRAM_ENABLED } from "@/app/features";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -10,7 +11,7 @@ import { lazyRichImages, Media } from "../../../media";
 import { JsonLd } from "../../../json-ld";
 import { Arrow, RevealObserver } from "../../../ui";
 
-/** Keeps "<title> | AJENT" inside Google's display width, dropping words instead of cutting mid-phrase. */
+/** Keeps "<title> | JUDY" inside Google's display width, dropping words instead of cutting mid-phrase. */
 const gameTitle = (candidates: string[], name: string) => [...candidates, name].find((t) => t.length <= 52) ?? name.slice(0, 52);
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/games/[slug]">): Promise<Metadata> {
@@ -96,9 +97,9 @@ export default async function GameDetailPage({ params }: PageProps<"/[lang]/game
                   {t.play} <Arrow size={14} />
                 </a>
               )}
-              <Link className="btn-ghost detail-ghost" href={localePath(lang, "/download")}>
+              {CONNECTION_PROGRAM_ENABLED && <Link className="btn-ghost detail-ghost" href={localePath(lang, "/download")}>
                 {t.download}
-              </Link>
+              </Link>}
             </div>
           </div>
           <div className="detail-cover reveal-right">

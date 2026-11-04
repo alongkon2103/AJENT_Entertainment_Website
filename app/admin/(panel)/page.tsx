@@ -32,7 +32,7 @@ export default async function AdminDashboard() {
       <div className="adm-head">
         <div>
           <h1 className="adm-title">แดชบอร์ด</h1>
-          <p className="adm-sub">ภาพรวมเนื้อหาบนเว็บไซต์ AJENT</p>
+          <p className="adm-sub">ภาพรวมเนื้อหาบนเว็บไซต์ JUDY</p>
         </div>
         <div className="adm-head-actions">
           <Link href="/admin/news/new" className="adm-btn">

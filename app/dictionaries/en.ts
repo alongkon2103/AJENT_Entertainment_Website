@@ -2,9 +2,9 @@ import type { Dict } from "./th";
 
 export const en: Dict = {
   site: {
-    title: "TikTok Live Gaming Agency | AJENT ENTERTAINMENT",
+    title: "TikTok Live Gaming Agency | JUDY ENTERTAINMENT",
     description:
-      "A TikTok Live agency for gaming streamers. Members get Roblox and Minecraft games, the Tikkies Tools gift-to-game app and a support team from your very first stream.",
+      "A TikTok Live agency for gaming streamers. Members get Roblox and Minecraft games and a support team from your very first stream.",
     keywords: [
       "TikTok agency",
       "TikTok Live agency",
@@ -13,20 +13,17 @@ export const en: Dict = {
       "TikTok live streaming",
       "TikTok Live games",
       "Roblox TikTok Live games",
-      "TikTok gift app",
       "Interactive LIVE",
-      "TikFinity",
-      "Tikkies Tools",
-      "AJENT ENTERTAINMENT",
+      "JUDY ENTERTAINMENT",
     ],
-    ogAlt: "AJENT ENTERTAINMENT, a TikTok Live gaming agency",
+    ogAlt: "JUDY ENTERTAINMENT, a TikTok Live gaming agency",
     home: "Home",
   },
 
   nav: { home: "Home", game: "Games", program: "Program", faq: "FAQ", contact: "Contact", switchLang: "เปลี่ยนเป็นภาษาไทย" },
 
   hero: {
-    line1: "AJENT",
+    line1: "JUDY",
     line2: "Entertainment",
     tag: "Leveling up your live, together with us.",
     btn: "Join Us",
@@ -42,7 +39,7 @@ export const en: Dict = {
   home: {
     heroImageAlt: "Tikkies Tools, a TikTok LIVE Interactive app for streamers",
     feats: [
-      { title: "TikTok Live connection", text: "Easy to use, like a remote control for your stream" },
+      { title: "TikTok Live support", text: "Guidance to help you grow your live stream" },
       { title: "Agency games", text: "Action, gameplay and fantasy titles, with new updates all the time" },
       { title: "Earnings", text: "High commission with real-time earnings tracking" },
       { title: "Safe and simple", text: "A secure, protected system, looked after 24 hours a day" },
@@ -77,19 +74,19 @@ export const en: Dict = {
     faqs: [
       { q: "What is a TikTok agency?", a: "An agency looks after and supports creators on TikTok, whether they are streamers, LIVE creators or VJs. It gives advice on going live, growing your content, solving problems and building your presence on the platform." },
       { q: "What does an agency get from streamers or VJs?", a: "In general, an agency does not take a cut of a creator's earnings directly. When creators perform and earn under TikTok's terms, the agency may receive compensation or a share from TikTok according to its own programme and conditions. So an agency's income does not mean money is deducted from the creator's earnings." },
-      { q: "Is it better to join an agency or stay independent?", a: "It depends on what you need. The advantage of an agency is having a team that looks after you, gives advice and opens the door to extra benefits, such as bonuses or creator events, live streaming guidance and support, and tools, apps or games to use on stream. At AJent Entertainment we offer a support team plus apps and games for our members." },
-      { q: "Are agency perks really worth it?", a: "It varies from agency to agency, so pick one that suits your streaming style. Some offer bonuses, events, apps or live tools, while gaming agencies may offer games made for streamers. The key is to read the details, terms and benefits carefully before you decide to join." },
+      { q: "Is it better to join an agency or stay independent?", a: "It depends on what you need. The advantage of an agency is having a team that looks after you, gives advice and opens the door to extra benefits, such as bonuses or creator events, live streaming guidance and support, and games to use on stream. At JUDY Entertainment we offer a support team plus games for our members." },
+      { q: "Are agency perks really worth it?", a: "It varies from agency to agency, so pick one that suits your streaming style. Some offer bonuses, events or streaming guidance, while gaming agencies may offer games made for streamers. The key is to read the details, terms and benefits carefully before you decide to join." },
       { q: "Is it true you can't leave once you join?", a: "No, joining does not always mean you can never leave. Leaving depends on TikTok's rules and the agreement in place for your account at the time. In some cases there is a window where you can leave on your own; after that it may need to go through the agency or TikTok's process. Tip: before joining any agency, read the terms, agreement period, exit process and benefits in full." },
-      { q: "Do I have to buy games or a gift app to join AJent?", a: "No purchase needed. AJent Entertainment members get free access to games from JUDYSHOP and A CLASS STORE, based on the games and rights the agency provides. You also get an app for connecting and running gifts, images and assets for your stream, overlays to style your screen, games for Interactive LIVE and other tools to cut your startup costs." },
-      { q: "I've never streamed before. Can I still join AJent?", a: "Yes. No experience is needed. AJent Entertainment helps you from the basics: setting up the app, preparing your stream and using the games, through to techniques for growing your live. Our team has more than 2 years of live streaming experience and uses it to guide and support members. If you're ready to learn, we're ready to help you grow." },
-      { q: "What do I need to start streaming?", a: "To begin, you need a TikTok account that is eligible for LIVE under TikTok's rules and a computer that can handle streaming. Don't worry about games, apps or tools: AJent Entertainment provides them for members, and our team will help you install and set everything up." },
+      { q: "Do I have to buy games to join JUDY?", a: "No purchase needed. JUDY Entertainment members get free access to games from JUDYSHOP and A CLASS STORE, based on the games and rights the agency provides. You also get images and assets for your stream, overlays to style your screen, games for Interactive LIVE and other tools to cut your startup costs." },
+      { q: "I've never streamed before. Can I still join JUDY?", a: "Yes. No experience is needed. JUDY Entertainment helps you from the basics: preparing your stream and using the games, through to techniques for growing your live. Our team has more than 2 years of live streaming experience and uses it to guide and support members. If you're ready to learn, we're ready to help you grow." },
+      { q: "What do I need to start streaming?", a: "To begin, you need a TikTok account that is eligible for LIVE under TikTok's rules and a computer that can handle streaming. Don't worry about games or stream preparation: JUDY Entertainment provides them for members, and our team will help you install and set everything up." },
     ],
   },
 
   common: { viewAll: "View all", screenshotAlt: "Tikkies Tools app screen" },
 
   footer: {
-    about: "AJENT ENTERTAINMENT is a full-service agency with game connection tools for TikTok Live streamers at every level.",
+    about: "JUDY ENTERTAINMENT is a gaming agency with a dedicated support team for TikTok Live streamers at every level.",
     menu: "Menu",
     links: { home: "Home", game: "Agency games", program: "Connection app", games: "All games", news: "News", download: "Download the app", try: "Try the app" },
     contact: "Contact us",
@@ -120,7 +117,7 @@ export const en: Dict = {
 
   news: {
     metaTitle: "News and Latest Updates",
-    metaDescription: "News, new game updates, promotions and articles for TikTok Live streamers from AJENT ENTERTAINMENT, a gaming agency.",
+    metaDescription: "News, new game updates, promotions and articles for TikTok Live streamers from JUDY ENTERTAINMENT, a gaming agency.",
     crumb: "News",
     badge: "News & latest updates",
     title: "News from",
@@ -129,22 +126,22 @@ export const en: Dict = {
     notFound: "News not found",
     backCrumb: "News & updates",
     moreLabel: "More news",
-    moreDesc: "Latest updates from AJENT",
+    moreDesc: "Latest updates from JUDY",
   },
 
   download: {
     metaTitle: "Download Tikkies Tools, the TikTok Gift App",
     metaDescription: (version: string) =>
-      `Download Tikkies Tools v${version}: connect TikTok Live to games and overlays with gift rules, a soundboard, chat text-to-speech and OBS control on Windows. Free for AJENT agency members.`,
+      `Download Tikkies Tools v${version}: connect TikTok Live to games and overlays with gift rules, a soundboard, chat text-to-speech and OBS control on Windows. Free for JUDY agency members.`,
     imageAlt: "Tikkies Tools, a TikTok LIVE Interactive app",
     appDescription: "Connects TikTok Live to games and overlays. Decide what each gift does and it shows up on your stream automatically.",
     crumb: "Download",
     badge: "Download",
     title: "Download",
-    desc: "Connect TikTok Live to your games and overlays. Made for AJENT agency members: one installer, then you're ready to go.",
+    desc: "Connect TikTok Live to your games and overlays. Made for JUDY agency members: one installer, then you're ready to go.",
     installer: "Download installer",
     tryFirst: "Try it before you download ↓",
-    noteBefore: "Free for AJENT agency members, and our team helps you install and set it up · Not a member yet?",
+    noteBefore: "Free for JUDY agency members, and our team helps you install and set it up · Not a member yet?",
     noteLink: "Contact us",
     noteAfter: "· macOS isn't supported yet (you can run it with Parallels or Boot Camp)",
     whatLabel: "What is Tikkies Tools?",
@@ -207,9 +204,9 @@ export const en: Dict = {
     ],
     faqBadge: "FAQ",
     faqTitle: "About the app",
-    faqSubtitle: "Can't find your answer? Contact the AJENT team.",
+    faqSubtitle: "Can't find your answer? Contact the JUDY team.",
     faqs: [
-      { q: "Is Tikkies Tools free for AJENT agency members?", a: "Yes. AJENT Entertainment members can use the app for free as part of their membership, and our team helps with installation and setup from the start. Not a member yet? Get in touch with us." },
+      { q: "Is Tikkies Tools free for JUDY agency members?", a: "Yes. JUDY Entertainment members can use the app for free as part of their membership, and our team helps with installation and setup from the start. Not a member yet? Get in touch with us." },
       { q: "Which streaming app do I need?", a: "Any app that can show a web page as a source, such as OBS, Streamlabs, TikTok LIVE Studio, XSplit or Prism, because every overlay is simply a link you paste in. (In TikTok LIVE Studio this is called Link Source, not Browser Source.)" },
       { q: "How many computers can I use it on?", a: "One account works on 2 computers, and you can switch them yourself from the account page. If you get a new computer, just remove the old one." },
       { q: "Where are my rules and settings stored?", a: "Everything stays on your computer and nothing gets lost. Open the app any time and carry on, and you can export or import rule sets as files." },

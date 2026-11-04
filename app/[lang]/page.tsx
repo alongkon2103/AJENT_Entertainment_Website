@@ -1,3 +1,4 @@
+import { CONNECTION_PROGRAM_ENABLED } from "@/app/features";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -48,10 +49,10 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
                 </div>
                 <Media
                   className="hero-laptop-img"
-                  src="/BannerTk.jpeg"
-                  alt={t.heroImageAlt}
-                  width={1024}
-                  height={626}
+                  src="/Judy.gif"
+                  alt="JUDY Entertainment"
+                  width={1152}
+                  height={648}
                   sizes="(max-width: 1000px) 78vw, 560px"
                   priority
                 />
@@ -131,7 +132,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
       </section>
 
       {/* ===== PROGRAM PREVIEW ===== */}
-      <section id="preview" className="section">
+      {CONNECTION_PROGRAM_ENABLED && <section id="preview" className="section">
         <div className="preview-wrap reveal">
           <div className="preview-content">
             <div className="preview-left reveal-left">
@@ -162,7 +163,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
             </div>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ===== NEWS ===== */}
       <section id="news" className="section">

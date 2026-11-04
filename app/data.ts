@@ -7,7 +7,7 @@ import { DiscordLogo, LineLogo, TikTokLogo } from "./icons";
 export const socials = [
   { id: "tiktok", name: "TikTok", handle: "@ajent.th", href: "https://www.tiktok.com/@ajent.th", Logo: TikTokLogo },
   { id: "line", name: "LINE", handle: "@269nbxml", href: "https://line.me/R/ti/p/@269nbxml", Logo: LineLogo },
-  { id: "discord", name: "Discord", handle: "AJent Entertainment", href: "https://discord.gg/utCjfDRMAs", Logo: DiscordLogo },
+  { id: "discord", name: "Discord", handle: "JUDY Entertainment", href: "https://discord.gg/utCjfDRMAs", Logo: DiscordLogo },
   { id: "email", name: "Email", handle: "ajent.entertainment@gmail.com", href: "mailto:ajent.entertainment@gmail.com", Logo: Mail },
 ];
 

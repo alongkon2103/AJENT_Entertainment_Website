@@ -1,3 +1,4 @@
+import { CONNECTION_PROGRAM_ENABLED } from "@/app/features";
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
 import { prisma } from "@/lib/db";
@@ -27,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages: Page[] = [
     { path: "/", lastModified: latest([...games, ...news]), changeFrequency: "daily", priority: 1 },
     { path: "/games", lastModified: latest(games), changeFrequency: "daily", priority: 0.9 },
-    { path: "/download", changeFrequency: "weekly", priority: 0.8 },
+    ...(CONNECTION_PROGRAM_ENABLED ? [{ path: "/download", changeFrequency: "weekly" as const, priority: 0.8 }] : []),
     { path: "/news", lastModified: latest(news), changeFrequency: "daily", priority: 0.7 },
     ...games.map((g) => entry("/games", g, 0.8)),
     ...news.map((n) => entry("/news", n, 0.6)),

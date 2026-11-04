@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
   const { lang } = await params;
   if (!isLocale(lang)) return {};
   const { site } = getDictionary(lang);
-  return { title: { default: site.title, template: "%s | AJENT" }, description: site.description, keywords: site.keywords };
+  return { title: { default: site.title, template: "%s | JUDY" }, description: site.description, keywords: site.keywords };
 }
 
 /** Everything public lives under /th or /en (proxy.ts redirects unprefixed URLs). */
