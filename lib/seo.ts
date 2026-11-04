@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { resolveSiteUrl } from "./site-url";
 import { socials } from "@/app/data";
 import { getDictionary } from "@/app/dictionaries";
 import { defaultLocale, localePath, locales, type Locale } from "@/app/i18n";
 
 /** Set SITE_URL to the real domain in production (canonical URLs, sitemap, share cards and JSON-LD all use it). */
-const siteUrl = (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+const siteUrl = resolveSiteUrl(process.env.SITE_URL);
 const th = getDictionary("th");
 
 export const SITE = {
@@ -15,7 +16,7 @@ export const SITE = {
   description: th.site.description,
   keywords: th.site.keywords,
   email: "ajent.entertainment@gmail.com",
-  ogImage: { url: "/og-judy-v4.jpg", width: 1200, height: 630, alt: th.site.ogAlt },
+  ogImage: { url: "/og-judy-v4.jpg?discord-check=2", width: 1200, height: 630, alt: th.site.ogAlt },
 };
 
 export const ogLocale = { th: "th_TH", en: "en_US" } satisfies Record<Locale, string>;

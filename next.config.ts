@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { resolveSiteUrl } from "./lib/site-url";
 
 // robots.txt, the sitemap host and static pages' canonical/Open Graph URLs are baked in at build time from SITE_URL.
 if (process.env.npm_lifecycle_event === "build" && !/^https:\/\//.test(process.env.SITE_URL ?? "")) {
@@ -6,6 +7,8 @@ if (process.env.npm_lifecycle_event === "build" && !/^https:\/\//.test(process.e
 }
 
 const nextConfig: NextConfig = {
+  // Only the public origin is embedded; runtime PM2 values cannot change URLs after a build.
+  env: { SITE_URL: resolveSiteUrl(process.env.SITE_URL) },
   // A stray package-lock.json in the home directory otherwise makes Next guess the wrong workspace root.
   turbopack: { root: __dirname },
   images: {
