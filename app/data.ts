@@ -14,7 +14,7 @@ export const socials = [
 /** Icons for the homepage feature strip, same order as dict.home.feats. */
 export const featIcons = [Radio, Gamepad2, TrendingUp, ShieldCheck, Headset, Gift];
 
-/* ===== Tikkies Tools (source: tikkies.aclassstore.com) ===== */
+/* ===== Tikkies Tools (currently disabled) ===== */
 export const tikkies = {
   app: {
     version: "0.9.20",
@@ -25,10 +25,8 @@ export const tikkies = {
   },
   presets: [
     { name: "Judy Smooth", slug: "judy-smooth", sub: "Roblox · Preset 1", rules: 14, bg: "linear-gradient(135deg,#1a1a4a,#2a1860)" },
-    { name: "AC Hyper Run", slug: "ac-hyper-run", sub: "Roblox · Preset 1", rules: 17, bg: "linear-gradient(135deg,#2a1050,#4a1060)" },
     { name: "Judy Rush", slug: "judy-rush", sub: "Roblox · Judy Rush", rules: 13, bg: "linear-gradient(135deg,#0a2a1a,#1a4a2a)" },
     { name: "Judy Jump", slug: "judy-jump", sub: "Roblox · Preset 1", rules: 16, bg: "linear-gradient(135deg,#1a1a4a,#3a1a5a)" },
-    { name: "AC Jump EVO", slug: "ac-jump-evo", sub: "Roblox · Preset 1", rules: 17, bg: "linear-gradient(135deg,#2a1050,#3a1a5a)" },
     { name: "Judy Legend", slug: "judy-legend", sub: "Roblox · Preset 1", rules: 16, bg: "linear-gradient(135deg,#1a1a4a,#4a1060)" },
   ],
   /** Same order as dict.download.compat (descriptions). */

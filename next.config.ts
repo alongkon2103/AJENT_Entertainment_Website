@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
       { source: "/app-demo/:path*", headers: cache(month) },
       { source: "/widgets/:path*", headers: cache(month) },
       { source: "/sfx/:path*", headers: cache(year) },
-      ...["/BannerTk.jpeg", "/tikkies-preview.png", "/steps-live.jpg", "/og-default.jpg", "/og-judy-v1.jpg", "/logo.png", "/Preview.mp4", "/preview-poster.jpg", "/SetStream.png"].map((source) => ({
+      ...["/BannerTk.jpeg", "/tikkies-preview.png", "/steps-live.jpg", "/og-default.jpg", "/og-judy-v1.jpg", "/og-judy-v2.jpg", "/logo.png", "/Preview.mp4", "/preview-poster.jpg", "/SetStream.png"].map((source) => ({
         source,
         headers: cache(month),
       })),

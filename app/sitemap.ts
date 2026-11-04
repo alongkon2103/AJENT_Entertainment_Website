@@ -1,6 +1,7 @@
 import { CONNECTION_PROGRAM_ENABLED } from "@/app/features";
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
+import { publicGameWhere } from "@/lib/content";
 import { prisma } from "@/lib/db";
 import { absoluteUrl, languageAlternates } from "@/lib/seo";
 import { localePath, locales } from "./i18n";
@@ -13,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const select = { slug: true, updatedAt: true, coverImage: true } as const;
   const [games, news] = await Promise.all([
-    prisma.game.findMany({ where: { isPublished: true }, select, orderBy: { sortOrder: "asc" } }),
+    prisma.game.findMany({ where: publicGameWhere, select, orderBy: { sortOrder: "asc" } }),
     prisma.news.findMany({ where: { isPublished: true, publishedAt: { lte: now } }, select, orderBy: { publishedAt: "desc" } }),
   ]);
   const latest = (rows: Row[]) => rows.reduce<Date | undefined>((max, r) => (!max || r.updatedAt > max ? r.updatedAt : max), undefined);

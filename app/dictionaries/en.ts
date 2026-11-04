@@ -77,7 +77,7 @@ export const en: Dict = {
       { q: "Is it better to join an agency or stay independent?", a: "It depends on what you need. The advantage of an agency is having a team that looks after you, gives advice and opens the door to extra benefits, such as bonuses or creator events, live streaming guidance and support, and games to use on stream. At JUDY Entertainment we offer a support team plus games for our members." },
       { q: "Are agency perks really worth it?", a: "It varies from agency to agency, so pick one that suits your streaming style. Some offer bonuses, events or streaming guidance, while gaming agencies may offer games made for streamers. The key is to read the details, terms and benefits carefully before you decide to join." },
       { q: "Is it true you can't leave once you join?", a: "No, joining does not always mean you can never leave. Leaving depends on TikTok's rules and the agreement in place for your account at the time. In some cases there is a window where you can leave on your own; after that it may need to go through the agency or TikTok's process. Tip: before joining any agency, read the terms, agreement period, exit process and benefits in full." },
-      { q: "Do I have to buy games to join JUDY?", a: "No purchase needed. JUDY Entertainment members get free access to games from JUDYSHOP and A CLASS STORE, based on the games and rights the agency provides. You also get images and assets for your stream, overlays to style your screen, games for Interactive LIVE and other tools to cut your startup costs." },
+      { q: "Do I have to buy games to join JUDY?", a: "No purchase needed. JUDY Entertainment members get free access to games from JUDYSHOP, based on the games and rights the agency provides. You also get images and assets for your stream, overlays to style your screen, games for Interactive LIVE and other tools to cut your startup costs." },
       { q: "I've never streamed before. Can I still join JUDY?", a: "Yes. No experience is needed. JUDY Entertainment helps you from the basics: preparing your stream and using the games, through to techniques for growing your live. Our team has more than 2 years of live streaming experience and uses it to guide and support members. If you're ready to learn, we're ready to help you grow." },
       { q: "What do I need to start streaming?", a: "To begin, you need a TikTok account that is eligible for LIVE under TikTok's rules and a computer that can handle streaming. Don't worry about games or stream preparation: JUDY Entertainment provides them for members, and our team will help you install and set everything up." },
     ],
@@ -94,7 +94,7 @@ export const en: Dict = {
 
   games: {
     metaTitle: "Roblox and Minecraft Games for TikTok Live",
-    metaDescription: "Roblox and Minecraft games from Judy Studio and A Class Store that connect to TikTok Live. Viewers send a gift and something happens in the game instantly.",
+    metaDescription: "Roblox and Minecraft games from Judy Studio that connect to TikTok Live. Viewers send a gift and something happens in the game instantly.",
     crumb: "Games",
     badge: "Agency games",
     title: "All games ready for",

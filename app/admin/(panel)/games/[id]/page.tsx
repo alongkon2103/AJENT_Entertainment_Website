@@ -46,10 +46,10 @@ export default async function AdminGameEditPage({ params }: PageProps<"/admin/ga
           <div className="adm-stack">
             <section className="adm-card adm-card-pad adm-grid">
               <Field label="ชื่อเกม" wide>
-                <input className="adm-input lg" name="name" defaultValue={game?.name} required maxLength={120} placeholder="เช่น AC Jump EVO" />
+                <input className="adm-input lg" name="name" defaultValue={game?.name} required maxLength={120} placeholder="เช่น Judy Jump" />
               </Field>
               <Field label="Slug (URL)" hint="เว้นว่างเพื่อสร้างจากชื่อ ใช้ได้ a-z 0-9 และ -">
-                <input className="adm-input" name="slug" defaultValue={game?.slug} maxLength={80} placeholder="ac-jump-evo" />
+                <input className="adm-input" name="slug" defaultValue={game?.slug} maxLength={80} placeholder="judy-jump" />
               </Field>
               <Field label="แนวเกม" hint="แสดงใต้ชื่อบนการ์ด">
                 <input className="adm-input" name="genre" defaultValue={game?.genre} maxLength={120} placeholder="Obby · Adventure" />

@@ -24,7 +24,7 @@ type SeedGame = {
   slug: string; name: string; genre: string; excerpt: string; content: string; coverImage: string; playUrl: string;
   rating: number; sortOrder: number; isPublished: boolean; isFeatured: boolean; category: string; badges: string[];
 };
-// Judy Studio + A CLASS STORE games, imported from judygamestudio.com/shop (images live in public/game-media).
+// Judy Studio games, imported from judygamestudio.com/shop (images live in public/game-media).
 const games: SeedGame[] = JSON.parse(readFileSync(new URL("./data/games.json", import.meta.url), "utf8"));
 
 const news = [

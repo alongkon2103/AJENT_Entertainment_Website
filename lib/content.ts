@@ -5,6 +5,18 @@ import { prisma } from "./db";
 import type { Locale } from "@/app/i18n";
 import type { Prisma, Tag } from "./generated/prisma/client";
 
+// Exclude the former provider at query time so existing production databases need no destructive cleanup.
+export const publicGameWhere = {
+  isPublished: true,
+  NOT: { OR: [
+    { slug: { startsWith: "ac-" } },
+    { name: { startsWith: "AC " } },
+    { genre: { contains: "A Class Store" } },
+    { content: { contains: "A Class Store" } },
+    { contentEn: { contains: "A Class Store" } },
+  ] },
+} satisfies Prisma.GameWhereInput;
+
 // Public-site queries. Only published items; categories/badges that are switched off are hidden.
 const gameInclude = {
   category: true,
@@ -42,7 +54,7 @@ const newsIn = (lang: Locale) => (n: NewsWithTag): NewsWithTag =>
 export async function getHomeContent(lang: Locale) {
   await connection(); // read at request time so admin edits show up immediately and builds never need the DB
   const [games, categories, news] = await Promise.all([
-    prisma.game.findMany({ where: { isPublished: true }, include: gameInclude, orderBy: gameOrder, take: 4 }),
+    prisma.game.findMany({ where: publicGameWhere, include: gameInclude, orderBy: gameOrder, take: 4 }),
     gameCategories(),
     prisma.news.findMany({ where: liveNews(), include: newsInclude, orderBy: newsOrder, take: 4 }),
   ]);
@@ -52,7 +64,7 @@ export async function getHomeContent(lang: Locale) {
 export async function getAllGames(lang: Locale) {
   await connection();
   const [games, categories] = await Promise.all([
-    prisma.game.findMany({ where: { isPublished: true }, include: gameInclude, orderBy: gameOrder }),
+    prisma.game.findMany({ where: publicGameWhere, include: gameInclude, orderBy: gameOrder }),
     gameCategories(),
   ]);
   return { games: games.map(gameIn(lang)), categories: categories.map((c) => tagIn(lang, c)) };
@@ -60,10 +72,10 @@ export async function getAllGames(lang: Locale) {
 
 export const getGame = cache(async (slug: string, lang: Locale) => {
   await connection();
-  const game = await prisma.game.findFirst({ where: { slug, isPublished: true }, include: gameInclude });
+  const game = await prisma.game.findFirst({ where: { ...publicGameWhere, slug }, include: gameInclude });
   if (!game) return null;
   const more = await prisma.game.findMany({
-    where: { isPublished: true, id: { not: game.id } },
+    where: { ...publicGameWhere, id: { not: game.id } },
     include: gameInclude,
     orderBy: gameOrder,
     take: 4,
@@ -87,6 +99,6 @@ export const getNews = cache(async (slug: string, lang: Locale) => {
 /** Cover image per slug for published games (used by the Tikkies preset cards on /download). */
 export async function getGameCovers(slugs: string[]) {
   await connection();
-  const rows = await prisma.game.findMany({ where: { slug: { in: slugs }, isPublished: true }, select: { slug: true, coverImage: true } });
+  const rows = await prisma.game.findMany({ where: { ...publicGameWhere, slug: { in: slugs } }, select: { slug: true, coverImage: true } });
   return new Map(rows.map((r) => [r.slug, r.coverImage]));
 }
