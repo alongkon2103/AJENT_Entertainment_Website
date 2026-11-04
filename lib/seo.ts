@@ -15,7 +15,7 @@ export const SITE = {
   description: th.site.description,
   keywords: th.site.keywords,
   email: "ajent.entertainment@gmail.com",
-  ogImage: { url: "/og-default.jpg", width: 1200, height: 630, alt: th.site.ogAlt },
+  ogImage: { url: "/og-judy-v1.jpg", width: 1200, height: 630, alt: th.site.ogAlt },
 };
 
 export const ogLocale = { th: "th_TH", en: "en_US" } satisfies Record<Locale, string>;

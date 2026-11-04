@@ -6,6 +6,8 @@ for (const lang of ['th', 'en']) {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /JUDY/);
+  assert.match(html, /property="og:image" content="[^"]*\/og-judy-v1\.jpg"/);
+  assert.match(html, /name="twitter:image" content="[^"]*\/og-judy-v1\.jpg"/);
   assert.doesNotMatch(html, /brand-logo-(?:nav|hero|footer)/);
   assert.match(html, /class="line1">JUDY/);
   assert.match(html, /<body class="dark">/);
