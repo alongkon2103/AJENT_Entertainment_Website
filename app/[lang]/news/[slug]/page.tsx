@@ -85,7 +85,7 @@ export default async function NewsDetailPage({ params }: PageProps<"/[lang]/news
         <section className="section" style={{ paddingTop: 0 }}>
           <div className="sec-top reveal">
             <div>
-              <div className="sec-label" style={{ color: "#8b5cf6" }}>{t.moreLabel}</div>
+              <div className="sec-label" style={{ color: "#c026d3" }}>{t.moreLabel}</div>
               <p className="sec-desc">{t.moreDesc}</p>
             </div>
             <Link className="sec-link" href={localePath(lang, "/news")}>

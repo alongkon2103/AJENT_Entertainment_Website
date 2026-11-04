@@ -7,9 +7,7 @@ import { login } from "../actions";
 export default function LoginForm() {
   return (
     <div className="adm-card adm-login-card">
-      <div className="adm-login-icon">
-        <Lock size={26} />
-      </div>
+      <div className="adm-login-icon"><Lock size={26} /></div>
       <h1 className="adm-title">JUDY Admin</h1>
       <p className="adm-sub">จัดการเกม ข่าวสาร และหมวดหมู่ของเว็บไซต์</p>
       <SaveForm action={login} submitLabel="เข้าสู่ระบบ" className="adm-stack">

@@ -6,6 +6,9 @@ for (const lang of ['th', 'en']) {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /JUDY/);
+  assert.doesNotMatch(html, /brand-logo-(?:nav|hero|footer)/);
+  assert.match(html, /class="line1">JUDY/);
+  assert.match(html, /<body class="dark">/);
   assert.match(html, /class="steps-cards"/);
   assert.match(html, /steps-live\.jpg/);
   assert.doesNotMatch(html, /id="preview"|href="[^"]*\/download|Tikkies Tools/);

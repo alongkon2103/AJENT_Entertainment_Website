@@ -43,7 +43,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f5f0ff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c0818" },
+    { media: "(prefers-color-scheme: dark)", color: "#08040b" },
   ],
 };
 
@@ -53,7 +53,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const lang = isLocale(locale) ? locale : defaultLocale;
   return (
     <html lang={lang} className={`${notoThai.variable} ${inter.variable}`}>
-      <body>
+      <body className="dark">
         <UIProvider>{children}</UIProvider>
       </body>
     </html>

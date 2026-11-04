@@ -41,9 +41,7 @@ export function AdminSidebar() {
     <aside className="adm-side">
       <Link href="/admin" className="adm-brand">
         <span className="nav-logo-icon">J</span>
-        <span>
-          <b>JUDY</b> Admin
-        </span>
+        <span><b>JUDY</b> Admin</span>
       </Link>
       <nav className="adm-nav">
         {nav.map((item) =>
@@ -291,7 +289,7 @@ export function TagEditor({ kind, tag, usage = 0 }: { kind: TagKind; tag?: Tag; 
 
 function TagForm({ kind, tag, usage, onCreated }: { kind: TagKind; tag?: Tag; usage: number; onCreated?: () => void }) {
   const [name, setName] = useState(tag?.name ?? "");
-  const [color, setColor] = useState(tag?.color ?? "#8b5cf6");
+  const [color, setColor] = useState(tag?.color ?? "#c026d3");
   const [textColor, setTextColor] = useState(tag?.textColor ?? "#ffffff");
   const soft = kind === "news-category";
   const preview = name || TAG_KINDS[kind].item;

@@ -20,7 +20,7 @@ export default async function AdminDashboard() {
   ]);
 
   const stats = [
-    { href: "/admin/games", label: `เกม · เผยแพร่ ${gamesLive}`, value: games, icon: Gamepad2, color: "linear-gradient(135deg,#a78bfa,#7c3aed)" },
+    { href: "/admin/games", label: `เกม · เผยแพร่ ${gamesLive}`, value: games, icon: Gamepad2, color: "linear-gradient(135deg,#e879f9,#a21caf)" },
     { href: "/admin/news", label: `ข่าว · เผยแพร่ ${newsLive}`, value: news, icon: Newspaper, color: "linear-gradient(135deg,#f472b6,#db2777)" },
     { href: "/admin/news", label: "ข่าวตั้งเวลาไว้", value: scheduled, icon: CalendarClock, color: "linear-gradient(135deg,#fbbf24,#d97706)" },
     { href: "/admin/tags/game-category", label: "หมวดหมู่เกม", value: categories, icon: Shapes, color: "linear-gradient(135deg,#60a5fa,#2563eb)" },

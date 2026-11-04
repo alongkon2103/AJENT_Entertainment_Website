@@ -87,7 +87,7 @@ export default async function DownloadPage({ params }: PageProps<"/[lang]/downlo
       <section className="section">
         <div className="prog-wrap reveal">
           <div style={{ marginBottom: 32 }}>
-            <div className="sec-label reveal" style={{ color: "#a78bfa" }}>{t.whatLabel}</div>
+            <div className="sec-label reveal" style={{ color: "#e879f9" }}>{t.whatLabel}</div>
             <h2 className="sec-title reveal">{t.whatTitle}</h2>
             <p className="sec-desc">{t.whatDesc}</p>
           </div>
@@ -121,7 +121,7 @@ export default async function DownloadPage({ params }: PageProps<"/[lang]/downlo
       <section className="section">
         <div className="prog-wrap reveal">
           <div style={{ marginBottom: 32 }}>
-            <div className="sec-label reveal" style={{ color: "#a78bfa" }}>{t.capLabel}</div>
+            <div className="sec-label reveal" style={{ color: "#e879f9" }}>{t.capLabel}</div>
             <h2 className="sec-title reveal">{t.capTitle}</h2>
             <p className="sec-desc">{t.capDesc}</p>
           </div>
@@ -130,7 +130,7 @@ export default async function DownloadPage({ params }: PageProps<"/[lang]/downlo
               <div key={c.num} className="step-new-card reveal" style={{ transitionDelay: `${i * 0.1}s` }}>
                 <div className="step-new-num">{c.num}</div>
                 <div className="step-new-body">
-                  <div className="step-new-t">{c.title} <span style={{ fontWeight: 500, color: "#8b5cf6" }}>· {c.sub}</span></div>
+                  <div className="step-new-t">{c.title} <span style={{ fontWeight: 500, color: "#c026d3" }}>· {c.sub}</span></div>
                   <div className="step-new-d">{c.desc}</div>
                 </div>
               </div>
@@ -144,7 +144,7 @@ export default async function DownloadPage({ params }: PageProps<"/[lang]/downlo
         <div className="preview-wrap reveal">
           <div className="preview-content">
             <div className="preview-left reveal-left">
-              <div className="sec-label reveal" style={{ color: "#a78bfa" }}>{t.howLabel}</div>
+              <div className="sec-label reveal" style={{ color: "#e879f9" }}>{t.howLabel}</div>
               <h2 className="sec-title reveal">{t.howTitle}<br /><span className="grad-text">{t.howTitleAccent}</span></h2>
               <div className="steps-cards" style={{ marginTop: 20 }}>
                 {workflow.map((w, i) => (
@@ -178,7 +178,7 @@ export default async function DownloadPage({ params }: PageProps<"/[lang]/downlo
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="prog-wrap reveal">
           <div style={{ marginBottom: 32 }}>
-            <div className="sec-label reveal" style={{ color: "#a78bfa" }}>{t.installLabel}</div>
+            <div className="sec-label reveal" style={{ color: "#e879f9" }}>{t.installLabel}</div>
             <h2 className="sec-title reveal">{t.installTitle}</h2>
             <p className="sec-desc">{t.installDesc}</p>
           </div>
@@ -252,7 +252,7 @@ export default async function DownloadPage({ params }: PageProps<"/[lang]/downlo
       <section className="section">
         <div className="sec-top reveal">
           <div>
-            <div className="sec-label reveal" style={{ color: "#8b5cf6" }}>{t.compatLabel}</div>
+            <div className="sec-label reveal" style={{ color: "#c026d3" }}>{t.compatLabel}</div>
             <h2 className="sec-title reveal">{t.compatTitle}</h2>
             <p className="sec-desc">{t.compatDesc}</p>
           </div>

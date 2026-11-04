@@ -11,7 +11,7 @@ export function GameCard({ lang, game, style }: { lang: Locale; game: GameWithTa
   const href = localePath(lang, `/games/${game.slug}`);
   return (
     <div className="game-card reveal" style={style}>
-      <Link href={href} className="game-img" style={{ background: `linear-gradient(135deg,#1a1a4a,${tint(cat?.color ?? "#8b5cf6", "66")})` }}>
+      <Link href={href} className="game-img" style={{ background: `linear-gradient(135deg,#1a1a4a,${tint(cat?.color ?? "#c026d3", "66")})` }}>
         {game.coverImage ? (
           <Media className="game-cover" src={game.coverImage} alt={game.name} fill sizes="(max-width: 500px) 46vw, (max-width: 900px) 48vw, 300px" />
         ) : (
@@ -54,7 +54,7 @@ export function GameCard({ lang, game, style }: { lang: Locale; game: GameWithTa
 
 export function NewsCard({ lang, item, style }: { lang: Locale; item: NewsWithTag; style?: CSSProperties }) {
   const cat = item.category?.isActive ? item.category : null;
-  const color = cat?.color ?? "#8b5cf6";
+  const color = cat?.color ?? "#c026d3";
   return (
     <Link href={localePath(lang, `/news/${item.slug}`)} className="news-card reveal" style={style}>
       <div className="news-img" style={{ background: `linear-gradient(135deg,${tint(color, "14")},${tint(color, "2e")})` }}>

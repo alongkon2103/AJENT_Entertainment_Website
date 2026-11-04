@@ -90,7 +90,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
       <section id="program" className="section">
         <div className="prog-wrap reveal">
           <div style={{ marginBottom: 32 }}>
-            <div className="sec-label reveal" style={{ color: "#a78bfa" }}>{t.stepsLabel}</div>
+            <div className="sec-label reveal" style={{ color: "#e879f9" }}>{t.stepsLabel}</div>
             <h2 className="sec-title reveal">{t.stepsTitle}</h2>
             <p className="sec-desc">{t.stepsDesc}</p>
           </div>
@@ -136,7 +136,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         <div className="preview-wrap reveal">
           <div className="preview-content">
             <div className="preview-left reveal-left">
-              <div className="sec-label reveal" style={{ color: "#a78bfa" }}>{t.previewLabel}</div>
+              <div className="sec-label reveal" style={{ color: "#e879f9" }}>{t.previewLabel}</div>
               <h2 className="sec-title reveal">{t.previewTitle}<br /><span className="grad-text">TikTok Live</span></h2>
               <p className="sec-desc" style={{ margin: "16px 0 24px" }}>{t.previewDesc}</p>
               <div className="preview-features">
@@ -169,7 +169,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
       <section id="news" className="section">
         <div className="sec-top reveal">
           <div>
-            <div className="sec-label reveal" style={{ color: "#8b5cf6" }}>{t.newsLabel}</div>
+            <div className="sec-label reveal" style={{ color: "#c026d3" }}>{t.newsLabel}</div>
             <p className="sec-desc">{t.newsDesc}</p>
           </div>
           <Link className="sec-link" href={localePath(lang, "/news")}>{d.common.viewAll} &rarr;</Link>

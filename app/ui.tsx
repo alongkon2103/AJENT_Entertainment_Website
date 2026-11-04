@@ -13,7 +13,7 @@ type UI = { isDark: boolean; toggleDark: () => void };
 const UIContext = createContext<UI>({ isDark: false, toggleDark: () => {} });
 
 export function UIProvider({ children }: { children: ReactNode }) {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
     document.body.classList.toggle("dark", isDark);
@@ -96,7 +96,7 @@ export function Nav({ lang, t }: { lang: Locale; t: Dict["nav"] }) {
             {lang.toUpperCase()}
           </Link>
           <button type="button" className="nav-dark" aria-label="Toggle dark mode" onClick={toggleDark}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#c026d3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {isDark ? (
                 <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
               ) : (
@@ -134,9 +134,9 @@ export function Faq({ items }: { items: { q: string; a: string }[] }) {
         // overwrites the `visible` class the RevealObserver adds.
         return (
           <div key={f.q} className="faq-item reveal" style={{ transitionDelay: `${i * 0.08}s` }} onClick={() => setOpenIdx(open ? -1 : i)}>
-            <div className="faq-q" style={{ color: open ? "#ec4899" : undefined }}>
+            <div className="faq-q" style={{ color: open ? "#ec31cb" : undefined }}>
               <span>{f.q}</span>
-              <div className="faq-toggle" style={{ color: open ? "#ec4899" : undefined }}>{open ? "×" : "+"}</div>
+              <div className="faq-toggle" style={{ color: open ? "#ec31cb" : undefined }}>{open ? "×" : "+"}</div>
             </div>
             <div className={`faq-a${open ? " open" : ""}`}>{f.a}</div>
           </div>
@@ -158,10 +158,10 @@ export function Footer({ lang, t }: { lang: Locale; t: Dict["footer"] }) {
               <div className="nav-logo-icon" style={{ width: 34, height: 34, fontSize: 13 }}>J</div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 14, color: "#fff" }}>JUDY ENTERTAINMENT</div>
-                <div style={{ fontSize: 10, color: "#6a5a8a" }}>TikTok Live &amp; Game Hub</div>
+                <div style={{ fontSize: 10, color: "#aa91b4" }}>TikTok Live &amp; Game Hub</div>
               </div>
             </div>
-            <p style={{ fontSize: 13, color: "#6a5a8a", lineHeight: 1.7, maxWidth: 280 }}>{t.about}</p>
+            <p style={{ fontSize: 13, color: "#aa91b4", lineHeight: 1.7, maxWidth: 280 }}>{t.about}</p>
           </div>
           <div>
             <div className="footer-col-t">{t.menu}</div>
