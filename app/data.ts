@@ -8,7 +8,7 @@ export const socials = [
   { id: "tiktok", name: "TikTok", handle: "@ajent.th", href: "https://www.tiktok.com/@ajent.th", Logo: TikTokLogo },
   { id: "line", name: "LINE", handle: "@269nbxml", href: "https://line.me/R/ti/p/@269nbxml", Logo: LineLogo },
   { id: "discord", name: "Discord", handle: "JUDY Entertainment", href: "https://discord.gg/utCjfDRMAs", Logo: DiscordLogo },
-  { id: "email", name: "Email", handle: "ajent.entertainment@gmail.com", href: "mailto:ajent.entertainment@gmail.com", Logo: Mail },
+  { id: "email", name: "Email", handle: "judyshop0330@gmail.com", href: "mailto:judyshop0330@gmail.com", Logo: Mail },
 ];
 
 /** Icons for the homepage feature strip, same order as dict.home.feats. */

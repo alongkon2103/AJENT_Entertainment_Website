@@ -15,7 +15,7 @@ export const SITE = {
   title: th.site.title,
   description: th.site.description,
   keywords: th.site.keywords,
-  email: "ajent.entertainment@gmail.com",
+  email: "judyshop0330@gmail.com",
   ogImage: { url: "/og-judy-v4.jpg?discord-check=2", width: 1200, height: 630, alt: th.site.ogAlt },
 };
 
